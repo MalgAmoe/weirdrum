@@ -1,0 +1,271 @@
+mod utils;
+
+use wasm_bindgen::prelude::*;
+// use web_sys::console;
+use web_sys::AudioContext;
+
+// When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
+// allocator.
+#[cfg(feature = "wee_alloc")]
+#[global_allocator]
+static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+
+#[wasm_bindgen]
+extern "C" {
+    fn alert(s: &str);
+}
+
+#[wasm_bindgen]
+pub struct Audio {
+    ctx: AudioContext,
+    schedule_interval: f32,
+    sequencer: Sequencer,
+}
+
+struct GlobalTransport {
+    tempo: f32,
+    playing: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Sequencer {
+    sequence: [Option<KickTrigger>; 16],
+    steps: i8,
+    current_step: i8,
+    next_step_time: f64,
+    step_delta: f64,
+    default_trigger: Kick,
+}
+
+impl Sequencer {
+    fn new(tempo: f32) -> Self {
+        Sequencer {
+            sequence: Default::default(),
+            steps: 16,
+            current_step: 0,
+            next_step_time: 0.0,
+            step_delta: (60.0 / tempo as f64) * (4.0 / 16.0),
+            default_trigger: Kick::default(),
+        }
+    }
+    fn schedule_sounds(
+        &mut self,
+        ctx: &AudioContext,
+        schedule_interval: f32,
+    ) -> Result<(), JsValue> {
+        while self.next_step_time < ctx.current_time() + schedule_interval as f64 {
+            // let l = format!("{:?}", ctx.current_time());
+            // console::log_1(&l.into());
+            match &self.sequence[self.current_step as usize] {
+                Some(kick_trigger) => match kick_trigger {
+                    KickTrigger::LockTrigger(kick) => {
+                        play_kick(ctx, *kick, self.next_step_time)?;
+                    }
+                    KickTrigger::Trigger => {
+                        play_kick(ctx, self.default_trigger, self.next_step_time)?;
+                    }
+                },
+                None => {}
+            }
+            self.current_step += 1;
+            if self.current_step >= self.steps {
+                self.current_step = 0;
+            }
+            self.next_step_time += self.step_delta;
+        }
+        Ok(())
+    }
+    fn play(&mut self, ctx: &AudioContext) {
+        self.next_step_time = ctx.current_time();
+    }
+    fn stop(&mut self) {
+        self.current_step = 0;
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Trigger {
+    KickTrigger,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum KickTrigger {
+    Trigger,
+    LockTrigger(Kick),
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Kick {
+    freq: f32,
+    pitch: f32,
+    wave: web_sys::OscillatorType,
+    decay: f32,
+    bite: f32,
+}
+
+impl Default for Kick {
+    fn default() -> Kick {
+        Kick {
+            freq: 40.0,
+            pitch: 1.0,
+            wave: web_sys::OscillatorType::Sine,
+            decay: 0.1,
+            bite: -30.0 * 0.0,
+        }
+    }
+}
+
+fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
+    match wave {
+        "triangle" => web_sys::OscillatorType::Triangle,
+        _ => web_sys::OscillatorType::Sine,
+    }
+}
+
+fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), JsValue> {
+    let time = /* ctx.current_time() +  */time_delta + 0.05;
+    let osc = ctx.create_oscillator()?;
+    osc.set_type(values.wave);
+    let gain = ctx.create_gain()?;
+    let compressor = ctx.create_dynamics_compressor()?;
+    compressor.threshold().set_value(values.bite);
+    compressor.knee().set_value(1.0);
+    compressor.ratio().set_value(5.0);
+    compressor.attack().set_value(0.1);
+    compressor.release().set_value(0.1);
+
+    osc.connect_with_audio_node(&gain)?;
+    gain.connect_with_audio_node(&compressor)?;
+    compressor.connect_with_audio_node(&ctx.destination())?;
+
+    osc.frequency()
+        .set_value_at_time(values.freq * values.pitch, time)?;
+    osc.frequency()
+        .exponential_ramp_to_value_at_time(values.freq, time + 0.02)?;
+    gain.gain().set_value(0.0);
+    gain.gain().set_target_at_time(0.5, time, 0.0005)?;
+    let decay = (values.decay * 0.5) as f64;
+    gain.gain().set_target_at_time(0.0, time + decay, decay)?;
+    osc.start()?;
+    osc.stop_with_when(time + 4.0)?;
+    Ok(())
+}
+
+#[wasm_bindgen]
+impl Audio {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> Result<Audio, JsValue> {
+        let ctx = web_sys::AudioContext::new()?;
+        let mut kick_sequencer = Sequencer::new(120.0);
+        let kick = Kick {
+            freq: 40.0,
+            pitch: 10.0,
+            wave: web_sys::OscillatorType::Sine,
+            decay: 0.1,
+            bite: -30.0 * 0.5,
+        };
+        let kick2 = Kick {
+            freq: 80.0,
+            pitch: 8.0,
+            wave: web_sys::OscillatorType::Sine,
+            decay: 0.3,
+            bite: -30.0 * 1.0,
+        };
+        let kick3 = Kick {
+            freq: 60.0,
+            pitch: 8.0,
+            wave: web_sys::OscillatorType::Sine,
+            decay: 0.1,
+            bite: -30.0 * 1.0,
+        };
+        kick_sequencer.sequence = [
+            Some(KickTrigger::LockTrigger(kick)),
+            None,
+            None,
+            None,
+            Some(KickTrigger::Trigger),
+            None,
+            None,
+            None,
+            Some(KickTrigger::LockTrigger(kick)),
+            None,
+            None,
+            None,
+            Some(KickTrigger::Trigger),
+            None,
+            None,
+            None,
+        ];
+
+        Ok(Audio {
+            ctx,
+            schedule_interval: 0.05,
+            sequencer: kick_sequencer,
+        })
+    }
+
+    #[wasm_bindgen]
+    pub fn play(
+        &mut self,
+        freq: f32,
+        pitch: f32,
+        wave_str: &str,
+        decay: f32,
+        bite: f32,
+    ) -> Result<(), JsValue> {
+        let wave = wave_string_to_osc(wave_str);
+        let kick = Kick {
+            freq,
+            pitch,
+            wave,
+            decay,
+            bite: -30.0 * bite,
+        };
+        play_kick(&self.ctx, kick, self.ctx.current_time())?;
+        // let l = format!("{:?}", self.ctx.current_time());
+        // console::log_1(&l.into());
+        // self.sequencer.play(&self.ctx);
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn update(
+        &mut self,
+        freq: f32,
+        pitch: f32,
+        wave_str: &str,
+        decay: f32,
+        bite: f32,
+    ) -> Result<(), JsValue> {
+        let wave = wave_string_to_osc(wave_str);
+        let kick = Kick {
+            freq,
+            pitch,
+            wave,
+            decay,
+            bite: -30.0 * bite,
+        };
+        self.sequencer.default_trigger = kick;
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn start(&mut self) -> Result<(), JsValue> {
+        // let l = format!("{:?}", self.ctx.current_time());
+        // console::log_1(&l.into());
+        self.sequencer.play(&self.ctx);
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn stop(&mut self) {
+        self.sequencer.stop();
+    }
+
+    #[wasm_bindgen]
+    pub fn schedule(&mut self) -> Result<(), JsValue> {
+        self.sequencer
+            .schedule_sounds(&self.ctx, self.schedule_interval)?;
+        Ok(())
+    }
+}
