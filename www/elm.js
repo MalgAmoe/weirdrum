@@ -5278,7 +5278,11 @@ var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$initialModel = function (_v0) {
 	return _Utils_Tuple2(
-		{playing: false, value: ''},
+		{
+			kick: {bite: 0.5, decay: 0.1, freq: 40, pitch: 10, wave: 'sin'},
+			playing: false,
+			value: ''
+		},
 		$elm$core$Platform$Cmd$none);
 };
 var $elm$core$Platform$Sub$batch = _Platform_batch;
@@ -5641,17 +5645,103 @@ var $author$project$Main$update = F2(
 						model,
 						{playing: false}),
 					$author$project$Main$stopSequence(_Utils_Tuple0));
-			default:
+			case 'Freq':
 				var value = msg.a;
+				var kick = model.kick;
 				var floatValue = $author$project$Main$parseString(value);
 				if (floatValue.$ === 'Just') {
 					var _float = floatValue.a;
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{value: value}),
+							{
+								kick: _Utils_update(
+									kick,
+									{freq: _float}),
+								value: value
+							}),
 						$author$project$Main$updateKick(
-							{bite: 0.5, decay: 0.1, freq: _float, pitch: 10, wave: 'sin'}));
+							_Utils_update(
+								kick,
+								{freq: _float})));
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{value: value}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'Pitch':
+				var value = msg.a;
+				var kick = model.kick;
+				var floatValue = $author$project$Main$parseString(value);
+				if (floatValue.$ === 'Just') {
+					var _float = floatValue.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								kick: _Utils_update(
+									kick,
+									{pitch: _float}),
+								value: value
+							}),
+						$author$project$Main$updateKick(
+							_Utils_update(
+								kick,
+								{pitch: _float})));
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{value: value}),
+						$elm$core$Platform$Cmd$none);
+				}
+			case 'Decay':
+				var value = msg.a;
+				var kick = model.kick;
+				var floatValue = $author$project$Main$parseString(value);
+				if (floatValue.$ === 'Just') {
+					var _float = floatValue.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								kick: _Utils_update(
+									kick,
+									{decay: _float}),
+								value: value
+							}),
+						$author$project$Main$updateKick(
+							_Utils_update(
+								kick,
+								{decay: _float})));
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{value: value}),
+						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				var value = msg.a;
+				var kick = model.kick;
+				var floatValue = $author$project$Main$parseString(value);
+				if (floatValue.$ === 'Just') {
+					var _float = floatValue.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								kick: _Utils_update(
+									kick,
+									{bite: _float}),
+								value: value
+							}),
+						$author$project$Main$updateKick(
+							_Utils_update(
+								kick,
+								{bite: _float})));
 				} else {
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -5662,10 +5752,19 @@ var $author$project$Main$update = F2(
 		}
 	});
 var $author$project$Main$PlayKick = {$: 'PlayKick'};
-var $author$project$Main$Slide = function (a) {
-	return {$: 'Slide', a: a};
-};
 var $elm$html$Html$button = _VirtualDom_node('button');
+var $author$project$Main$Bite = function (a) {
+	return {$: 'Bite', a: a};
+};
+var $author$project$Main$Decay = function (a) {
+	return {$: 'Decay', a: a};
+};
+var $author$project$Main$Freq = function (a) {
+	return {$: 'Freq', a: a};
+};
+var $author$project$Main$Pitch = function (a) {
+	return {$: 'Pitch', a: a};
+};
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$Attributes$stringProperty = F2(
@@ -5677,29 +5776,13 @@ var $elm$html$Html$Attributes$stringProperty = F2(
 	});
 var $elm$html$Html$Attributes$max = $elm$html$Html$Attributes$stringProperty('max');
 var $elm$html$Html$Attributes$min = $elm$html$Html$Attributes$stringProperty('min');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -5727,10 +5810,84 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
-var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
-var $author$project$Main$StopSequence = {$: 'StopSequence'};
+var $elm$html$Html$Attributes$step = function (n) {
+	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
+};
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
+var $author$project$Main$controls = A2(
+	$elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+			A2($elm$html$Html$Attributes$style, 'flex-direction', 'column')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$input,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$type_('range'),
+					$elm$html$Html$Attributes$min('30'),
+					$elm$html$Html$Attributes$max('80'),
+					$elm$html$Html$Attributes$step('0.1'),
+					$elm$html$Html$Events$onInput($author$project$Main$Freq)
+				]),
+			_List_Nil),
+			A2(
+			$elm$html$Html$input,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$type_('range'),
+					$elm$html$Html$Attributes$min('1'),
+					$elm$html$Html$Attributes$max('90'),
+					$elm$html$Html$Attributes$step('0.1'),
+					$elm$html$Html$Events$onInput($author$project$Main$Pitch)
+				]),
+			_List_Nil),
+			A2(
+			$elm$html$Html$input,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$type_('range'),
+					$elm$html$Html$Attributes$min('0.01'),
+					$elm$html$Html$Attributes$max('0.3'),
+					$elm$html$Html$Attributes$step('0.001'),
+					$elm$html$Html$Events$onInput($author$project$Main$Decay)
+				]),
+			_List_Nil),
+			A2(
+			$elm$html$Html$input,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$type_('range'),
+					$elm$html$Html$Attributes$min('0'),
+					$elm$html$Html$Attributes$max('11'),
+					$elm$html$Html$Attributes$step('0.01'),
+					$elm$html$Html$Events$onInput($author$project$Main$Bite)
+				]),
+			_List_Nil)
+		]));
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
+var $author$project$Main$StopSequence = {$: 'StopSequence'};
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$playingButton = function (isPlaying) {
@@ -5763,10 +5920,6 @@ var $author$project$Main$playingButton = function (isPlaying) {
 				$elm$html$Html$text('Play')
 			]));
 };
-var $elm$html$Html$Attributes$step = function (n) {
-	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
-};
-var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $author$project$Main$view = function (model) {
 	var buttonStyles = _List_fromArray(
 		[
@@ -5802,18 +5955,8 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$text('KICKKKKK')
 					])),
 				$author$project$Main$playingButton(model.playing),
-				A2(
-				$elm$html$Html$input,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$type_('range'),
-						$elm$html$Html$Attributes$min('30'),
-						$elm$html$Html$Attributes$max('80'),
-						$elm$html$Html$Attributes$step('0.1'),
-						$elm$html$Html$Events$onInput($author$project$Main$Slide)
-					]),
-				_List_Nil),
-				$elm$html$Html$text(model.value)
+				$elm$html$Html$text(model.value),
+				$author$project$Main$controls
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

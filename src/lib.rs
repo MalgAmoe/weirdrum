@@ -165,7 +165,7 @@ impl Audio {
             bite: -30.0 * 0.5,
         };
         let kick2 = Kick {
-            freq: 80.0,
+            freq: 50.0,
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.3,
@@ -185,7 +185,7 @@ impl Audio {
             None,
             Some(KickTrigger::Trigger),
             None,
-            None,
+            Some(KickTrigger::LockTrigger(kick2)),
             None,
             Some(KickTrigger::LockTrigger(kick)),
             None,
@@ -193,7 +193,7 @@ impl Audio {
             None,
             Some(KickTrigger::Trigger),
             None,
-            None,
+            Some(KickTrigger::LockTrigger(kick2)),
             None,
         ];
 
