@@ -1,6 +1,7 @@
 port module Main exposing (main)
 
 import Browser
+import Debug exposing (toString)
 import Html exposing (Html, button, div, h1, input, span, text)
 import Html.Attributes as A
 import Html.Events exposing (onClick, onInput)
@@ -24,7 +25,8 @@ type alias KickParams =
     , pitch : Float
     , wave : String
     , decay : Float
-    , bite : Float
+    , attack : Float
+    , volume : Float
     }
 
 
@@ -42,9 +44,10 @@ initialModel _ =
       , kick =
             { freq = 40
             , pitch = 10
-            , wave = "sin"
+            , wave = "sine"
             , decay = 0.1
-            , bite = 0.5
+            , attack = 0.5
+            , volume = 0.1
             }
       }
     , Cmd.none
@@ -58,7 +61,9 @@ type Msg
     | Freq String
     | Pitch String
     | Decay String
-    | Bite String
+    | Attack String
+    | Volume String
+    | Wave String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -66,7 +71,7 @@ update msg model =
     case msg of
         PlayKick ->
             ( model
-            , playKick { freq = 40, pitch = 10, wave = "sin", decay = 0.1, bite = 0.5 }
+            , playKick { freq = 40, pitch = 10, wave = "sine", decay = 0.1, attack = 0.5, volume = 1 }
             )
 
         PlaySequence ->
@@ -108,7 +113,7 @@ update msg model =
 
                 Nothing ->
                     ( { model | value = value }, Cmd.none )
-        
+
         Decay value ->
             let
                 floatValue =
@@ -124,7 +129,7 @@ update msg model =
                 Nothing ->
                     ( { model | value = value }, Cmd.none )
 
-        Bite value ->
+        Attack value ->
             let
                 floatValue =
                     parseString value
@@ -134,10 +139,32 @@ update msg model =
             in
             case floatValue of
                 Just float ->
-                    ( { model | value = value, kick = { kick | bite = float } }, updateKick { kick | bite = float } )
+                    ( { model | value = value, kick = { kick | attack = float } }, updateKick { kick | attack = float } )
 
                 Nothing ->
                     ( { model | value = value }, Cmd.none )
+
+        Volume value ->
+            let
+                floatValue =
+                    parseString value
+
+                kick =
+                    model.kick
+            in
+            case floatValue of
+                Just float ->
+                    ( { model | value = value, kick = { kick | volume = float } }, updateKick { kick | volume = float } )
+
+                Nothing ->
+                    ( { model | value = value }, Cmd.none )
+
+        Wave value ->
+            let
+                kick =
+                    model.kick
+            in
+            ( { model | kick = { kick | wave = value } }, updateKick { kick | wave = value } )
 
 
 view : Model -> Html Msg
@@ -165,24 +192,69 @@ view model =
             (onClick PlayKick :: buttonStyles)
             [ text "KICKKKKK" ]
         , playingButton model.playing
-
-        -- , input [ A.type_ "range", A.min "30", A.max "80", A.step "0.1", onInput Slide ] []
         , text model.value
-        , controls
+        , kickControls model.kick
         ]
 
 
-controls : Html Msg
-controls =
+kickControls : KickParams -> Html Msg
+kickControls kickParams =
     div
         [ A.style "display" "flex"
         , A.style "flex-direction" "column"
         ]
-        [ input [ A.type_ "range", A.min "30", A.max "80", A.step "0.1", onInput Freq ] []
-        , input [ A.type_ "range", A.min "1", A.max "90", A.step "0.1", onInput Pitch ] []
-        , input [ A.type_ "range", A.min "0.01", A.max "0.3", A.step "0.001", onInput Decay  ] []
-        , input [ A.type_ "range", A.min "0", A.max "11", A.step "0.01", onInput Bite  ] []
+        [ waveButton (kickParams.wave == "sine")
+        , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" Freq
+        , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" Pitch
+        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" Decay
+        , sliderWithValue "attack" kickParams.attack "0" "2" "0.001" Attack
+        , sliderWithValue "volume" kickParams.volume "0" "1" "0.001" Volume
         ]
+
+
+sliderWithValue : String -> Float -> String -> String -> String -> (String -> msg) -> Html msg
+sliderWithValue name value min max step msg =
+    div
+        [ A.style "display" "flex"
+        , A.style "flex-direction" "row"
+        , A.style "justify-content" "space-evenly"
+        , A.style "height" "30px"
+        ]
+        [ div
+            [ A.style "display" "flex"
+            , A.style "flex-direction" "row"
+            , A.style "justify-content" "space-between"
+            , A.style "width" "120px"
+            , A.style "line-height" "30px"
+            ]
+            [ span [] [ text name ]
+            , span [ A.style "width" "50px", A.style "text-align" "center" ] [ text (toString value) ]
+            ]
+        , input [ A.style "width" "100%", A.type_ "range", A.min min, A.max max, A.step step, A.value (toString value), onInput msg ] []
+        ]
+
+
+waveButton : Bool -> Html Msg
+waveButton isSine =
+    let
+        buttonStyles =
+            [ A.style "padding" "4px 12px"
+            , A.style "background" "#e8e7e2"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid grey"
+            , A.style "margin-bottom" "5px"
+            ]
+    in
+    if isSine then
+        button
+            (onClick (Wave "triangle") :: buttonStyles)
+            [ text "sine" ]
+
+    else
+        button
+            (onClick (Wave "sine") :: buttonStyles)
+            [ text "triangle" ]
 
 
 playingButton : Bool -> Html Msg

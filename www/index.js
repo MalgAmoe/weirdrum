@@ -7,8 +7,8 @@ let interval = null;
 var app = Elm.Main.init({ node: document.querySelector("main") });
 
 app.ports.playKick.subscribe(function (params) {
-  let { freq, pitch, wave, decay, bite } = params;
-  sound.play(freq, pitch, wave, decay, bite);
+  let { freq, pitch, wave, decay, attack, volume } = params;
+  sound.play(freq, pitch, wave, decay, attack, volume);
 });
 app.ports.playSequence.subscribe(function () {
   sound.start();
@@ -26,8 +26,8 @@ app.ports.stopSequence.subscribe(function () {
   }
 });
 app.ports.updateKick.subscribe(function (params) {
-  let { freq, pitch, wave, decay, bite } = params;
-  sound.update(freq, pitch, wave, decay, bite);
+  let { freq, pitch, wave, decay, attack, volume } = params;
+  sound.update(freq, pitch, wave, decay, attack, volume);
 });
 
 // if ("serviceWorker" in navigator) {

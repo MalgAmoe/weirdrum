@@ -5279,7 +5279,7 @@ var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$initialModel = function (_v0) {
 	return _Utils_Tuple2(
 		{
-			kick: {bite: 0.5, decay: 0.1, freq: 40, pitch: 10, wave: 'sin'},
+			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.1, wave: 'sine'},
 			playing: false,
 			value: ''
 		},
@@ -5575,8 +5575,8 @@ var $author$project$Main$playKick = _Platform_outgoingPort(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'bite',
-					$elm$json$Json$Encode$float($.bite)),
+					'attack',
+					$elm$json$Json$Encode$float($.attack)),
 					_Utils_Tuple2(
 					'decay',
 					$elm$json$Json$Encode$float($.decay)),
@@ -5586,6 +5586,9 @@ var $author$project$Main$playKick = _Platform_outgoingPort(
 					_Utils_Tuple2(
 					'pitch',
 					$elm$json$Json$Encode$float($.pitch)),
+					_Utils_Tuple2(
+					'volume',
+					$elm$json$Json$Encode$float($.volume)),
 					_Utils_Tuple2(
 					'wave',
 					$elm$json$Json$Encode$string($.wave))
@@ -5609,8 +5612,8 @@ var $author$project$Main$updateKick = _Platform_outgoingPort(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'bite',
-					$elm$json$Json$Encode$float($.bite)),
+					'attack',
+					$elm$json$Json$Encode$float($.attack)),
 					_Utils_Tuple2(
 					'decay',
 					$elm$json$Json$Encode$float($.decay)),
@@ -5620,6 +5623,9 @@ var $author$project$Main$updateKick = _Platform_outgoingPort(
 					_Utils_Tuple2(
 					'pitch',
 					$elm$json$Json$Encode$float($.pitch)),
+					_Utils_Tuple2(
+					'volume',
+					$elm$json$Json$Encode$float($.volume)),
 					_Utils_Tuple2(
 					'wave',
 					$elm$json$Json$Encode$string($.wave))
@@ -5632,7 +5638,7 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					model,
 					$author$project$Main$playKick(
-						{bite: 0.5, decay: 0.1, freq: 40, pitch: 10, wave: 'sin'}));
+						{attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 1, wave: 'sine'}));
 			case 'PlaySequence':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5723,7 +5729,7 @@ var $author$project$Main$update = F2(
 							{value: value}),
 						$elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'Attack':
 				var value = msg.a;
 				var kick = model.kick;
 				var floatValue = $author$project$Main$parseString(value);
@@ -5735,13 +5741,13 @@ var $author$project$Main$update = F2(
 							{
 								kick: _Utils_update(
 									kick,
-									{bite: _float}),
+									{attack: _float}),
 								value: value
 							}),
 						$author$project$Main$updateKick(
 							_Utils_update(
 								kick,
-								{bite: _float})));
+								{attack: _float})));
 				} else {
 					return _Utils_Tuple2(
 						_Utils_update(
@@ -5749,12 +5755,54 @@ var $author$project$Main$update = F2(
 							{value: value}),
 						$elm$core$Platform$Cmd$none);
 				}
+			case 'Volume':
+				var value = msg.a;
+				var kick = model.kick;
+				var floatValue = $author$project$Main$parseString(value);
+				if (floatValue.$ === 'Just') {
+					var _float = floatValue.a;
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{
+								kick: _Utils_update(
+									kick,
+									{volume: _float}),
+								value: value
+							}),
+						$author$project$Main$updateKick(
+							_Utils_update(
+								kick,
+								{volume: _float})));
+				} else {
+					return _Utils_Tuple2(
+						_Utils_update(
+							model,
+							{value: value}),
+						$elm$core$Platform$Cmd$none);
+				}
+			default:
+				var value = msg.a;
+				var kick = model.kick;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							kick: _Utils_update(
+								kick,
+								{wave: value})
+						}),
+					$author$project$Main$updateKick(
+						_Utils_update(
+							kick,
+							{wave: value})));
 		}
 	});
 var $author$project$Main$PlayKick = {$: 'PlayKick'};
 var $elm$html$Html$button = _VirtualDom_node('button');
-var $author$project$Main$Bite = function (a) {
-	return {$: 'Bite', a: a};
+var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Main$Attack = function (a) {
+	return {$: 'Attack', a: a};
 };
 var $author$project$Main$Decay = function (a) {
 	return {$: 'Decay', a: a};
@@ -5765,7 +5813,9 @@ var $author$project$Main$Freq = function (a) {
 var $author$project$Main$Pitch = function (a) {
 	return {$: 'Pitch', a: a};
 };
-var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Main$Volume = function (a) {
+	return {$: 'Volume', a: a};
+};
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -5810,66 +5860,81 @@ var $elm$html$Html$Events$onInput = function (tagger) {
 			$elm$html$Html$Events$alwaysStop,
 			A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue)));
 };
+var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$html$Html$Attributes$step = function (n) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
 };
 var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $elm$core$Debug$toString = _Debug_toString;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
-var $author$project$Main$controls = A2(
-	$elm$html$Html$div,
-	_List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-			A2($elm$html$Html$Attributes$style, 'flex-direction', 'column')
-		]),
-	_List_fromArray(
-		[
-			A2(
-			$elm$html$Html$input,
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
+var $author$project$Main$sliderWithValue = F6(
+	function (name, value, min, max, step, msg) {
+		return A2(
+			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$type_('range'),
-					$elm$html$Html$Attributes$min('30'),
-					$elm$html$Html$Attributes$max('80'),
-					$elm$html$Html$Attributes$step('0.1'),
-					$elm$html$Html$Events$onInput($author$project$Main$Freq)
+					A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+					A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
+					A2($elm$html$Html$Attributes$style, 'justify-content', 'space-evenly'),
+					A2($elm$html$Html$Attributes$style, 'height', '30px')
 				]),
-			_List_Nil),
-			A2(
-			$elm$html$Html$input,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$type_('range'),
-					$elm$html$Html$Attributes$min('1'),
-					$elm$html$Html$Attributes$max('90'),
-					$elm$html$Html$Attributes$step('0.1'),
-					$elm$html$Html$Events$onInput($author$project$Main$Pitch)
-				]),
-			_List_Nil),
-			A2(
-			$elm$html$Html$input,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$type_('range'),
-					$elm$html$Html$Attributes$min('0.01'),
-					$elm$html$Html$Attributes$max('0.3'),
-					$elm$html$Html$Attributes$step('0.001'),
-					$elm$html$Html$Events$onInput($author$project$Main$Decay)
-				]),
-			_List_Nil),
-			A2(
-			$elm$html$Html$input,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$type_('range'),
-					$elm$html$Html$Attributes$min('0'),
-					$elm$html$Html$Attributes$max('11'),
-					$elm$html$Html$Attributes$step('0.01'),
-					$elm$html$Html$Events$onInput($author$project$Main$Bite)
-				]),
-			_List_Nil)
-		]));
+					A2(
+					$elm$html$Html$div,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+							A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
+							A2($elm$html$Html$Attributes$style, 'justify-content', 'space-between'),
+							A2($elm$html$Html$Attributes$style, 'width', '120px'),
+							A2($elm$html$Html$Attributes$style, 'line-height', '30px')
+						]),
+					_List_fromArray(
+						[
+							A2(
+							$elm$html$Html$span,
+							_List_Nil,
+							_List_fromArray(
+								[
+									$elm$html$Html$text(name)
+								])),
+							A2(
+							$elm$html$Html$span,
+							_List_fromArray(
+								[
+									A2($elm$html$Html$Attributes$style, 'width', '50px'),
+									A2($elm$html$Html$Attributes$style, 'text-align', 'center')
+								]),
+							_List_fromArray(
+								[
+									$elm$html$Html$text(
+									$elm$core$Debug$toString(value))
+								]))
+						])),
+					A2(
+					$elm$html$Html$input,
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'width', '100%'),
+							$elm$html$Html$Attributes$type_('range'),
+							$elm$html$Html$Attributes$min(min),
+							$elm$html$Html$Attributes$max(max),
+							$elm$html$Html$Attributes$step(step),
+							$elm$html$Html$Attributes$value(
+							$elm$core$Debug$toString(value)),
+							$elm$html$Html$Events$onInput(msg)
+						]),
+					_List_Nil)
+				]));
+	});
+var $author$project$Main$Wave = function (a) {
+	return {$: 'Wave', a: a};
+};
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -5886,10 +5951,58 @@ var $elm$html$Html$Events$onClick = function (msg) {
 		'click',
 		$elm$json$Json$Decode$succeed(msg));
 };
+var $author$project$Main$waveButton = function (isSine) {
+	var buttonStyles = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'background', '#e8e7e2'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
+			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+		]);
+	return isSine ? A2(
+		$elm$html$Html$button,
+		A2(
+			$elm$core$List$cons,
+			$elm$html$Html$Events$onClick(
+				$author$project$Main$Wave('triangle')),
+			buttonStyles),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('sine')
+			])) : A2(
+		$elm$html$Html$button,
+		A2(
+			$elm$core$List$cons,
+			$elm$html$Html$Events$onClick(
+				$author$project$Main$Wave('sine')),
+			buttonStyles),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('triangle')
+			]));
+};
+var $author$project$Main$kickControls = function (kickParams) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'flex-direction', 'column')
+			]),
+		_List_fromArray(
+			[
+				$author$project$Main$waveButton(kickParams.wave === 'sine'),
+				A6($author$project$Main$sliderWithValue, 'freq', kickParams.freq, '30', '90', '0.1', $author$project$Main$Freq),
+				A6($author$project$Main$sliderWithValue, 'pitch', kickParams.pitch, '0', '30', '0.01', $author$project$Main$Pitch),
+				A6($author$project$Main$sliderWithValue, 'decay', kickParams.decay, '0.01', '0.3', '0.001', $author$project$Main$Decay),
+				A6($author$project$Main$sliderWithValue, 'attack', kickParams.attack, '0', '2', '0.001', $author$project$Main$Attack),
+				A6($author$project$Main$sliderWithValue, 'volume', kickParams.volume, '0', '1', '0.001', $author$project$Main$Volume)
+			]));
+};
 var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
 var $author$project$Main$StopSequence = {$: 'StopSequence'};
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $author$project$Main$playingButton = function (isPlaying) {
 	var buttonStyles = _List_fromArray(
 		[
@@ -5956,7 +6069,7 @@ var $author$project$Main$view = function (model) {
 					])),
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
-				$author$project$Main$controls
+				$author$project$Main$kickControls(model.kick)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
