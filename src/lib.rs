@@ -1,7 +1,7 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
-// use web_sys::console;
+use web_sys::console;
 use web_sys::AudioContext;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
@@ -30,8 +30,10 @@ struct GlobalTransport {
 #[derive(Debug, Clone, Copy)]
 struct Sequencer {
     sequence: [Option<KickTrigger>; 16],
+    trigger_times: [Option<f64>; 16],
     steps: i8,
-    current_step: i8,
+    step_to_schedule: i8,
+    step_playing: i8,
     next_step_time: f64,
     step_delta: f64,
     default_trigger: Kick,
@@ -41,8 +43,10 @@ impl Sequencer {
     fn new(tempo: f32) -> Self {
         Sequencer {
             sequence: Default::default(),
+            trigger_times: Default::default(),
             steps: 16,
-            current_step: 0,
+            step_to_schedule: 0,
+            step_playing: 0,
             next_step_time: 0.0,
             step_delta: (60.0 / tempo as f64) * (4.0 / 16.0),
             default_trigger: Kick::default(),
@@ -56,10 +60,10 @@ impl Sequencer {
         while self.next_step_time < ctx.current_time() + schedule_interval as f64 {
             // let l = format!("{:?}", ctx.current_time());
             // console::log_1(&l.into());
-            match &self.sequence[self.current_step as usize] {
+            match self.sequence[self.step_to_schedule as usize] {
                 Some(kick_trigger) => match kick_trigger {
                     KickTrigger::LockTrigger(kick) => {
-                        play_kick(ctx, *kick, self.next_step_time)?;
+                        play_kick(ctx, kick, self.next_step_time)?;
                     }
                     KickTrigger::Trigger => {
                         play_kick(ctx, self.default_trigger, self.next_step_time)?;
@@ -67,9 +71,10 @@ impl Sequencer {
                 },
                 None => {}
             }
-            self.current_step += 1;
-            if self.current_step >= self.steps {
-                self.current_step = 0;
+            self.trigger_times[self.step_to_schedule as usize] = Some(self.next_step_time);
+            self.step_to_schedule += 1;
+            if self.step_to_schedule >= self.steps {
+                self.step_to_schedule = 0;
             }
             self.next_step_time += self.step_delta;
         }
@@ -79,7 +84,9 @@ impl Sequencer {
         self.next_step_time = ctx.current_time();
     }
     fn stop(&mut self) {
-        self.current_step = 0;
+        self.step_to_schedule = 0;
+        self.step_playing = 0;
+        self.trigger_times = Default::default();
     }
 }
 
@@ -100,7 +107,8 @@ struct Kick {
     pitch: f32,
     wave: web_sys::OscillatorType,
     decay: f32,
-    bite: f32,
+    attack: f32,
+    volume: f32,
 }
 
 impl Default for Kick {
@@ -110,7 +118,8 @@ impl Default for Kick {
             pitch: 1.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            bite: -30.0 * 0.0,
+            attack: -30.0 * 0.0,
+            volume: 0.7,
         }
     }
 }
@@ -123,12 +132,13 @@ fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
 }
 
 fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), JsValue> {
-    let time = /* ctx.current_time() +  */time_delta + 0.05;
+    let time = time_delta + 0.05;
     let osc = ctx.create_oscillator()?;
     osc.set_type(values.wave);
     let gain = ctx.create_gain()?;
+
     let compressor = ctx.create_dynamics_compressor()?;
-    compressor.threshold().set_value(values.bite);
+    compressor.threshold().set_value(values.attack);
     compressor.knee().set_value(1.0);
     compressor.ratio().set_value(5.0);
     compressor.attack().set_value(0.1);
@@ -137,13 +147,15 @@ fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), Js
     osc.connect_with_audio_node(&gain)?;
     gain.connect_with_audio_node(&compressor)?;
     compressor.connect_with_audio_node(&ctx.destination())?;
+    // out.connect_with_audio_node(&ctx.destination())?;
 
     osc.frequency()
-        .set_value_at_time(values.freq * values.pitch, time)?;
+        .set_value_at_time(values.freq + values.freq * values.pitch, time)?;
     osc.frequency()
         .exponential_ramp_to_value_at_time(values.freq, time + 0.02)?;
     gain.gain().set_value(0.0);
-    gain.gain().set_target_at_time(0.5, time, 0.0005)?;
+    gain.gain()
+        .set_target_at_time(0.5 * values.volume, time, 0.0005)?;
     let decay = (values.decay * 0.5) as f64;
     gain.gain().set_target_at_time(0.0, time + decay, decay)?;
     osc.start()?;
@@ -162,21 +174,24 @@ impl Audio {
             pitch: 10.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            bite: -30.0 * 0.5,
+            attack: -30.0 * 0.5,
+            volume: 0.7,
         };
         let kick2 = Kick {
             freq: 50.0,
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.3,
-            bite: -30.0 * 1.0,
+            attack: -30.0 * 1.0,
+            volume: 0.7,
         };
         let kick3 = Kick {
             freq: 60.0,
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            bite: -30.0 * 1.0,
+            attack: -30.0 * 1.0,
+            volume: 0.7,
         };
         kick_sequencer.sequence = [
             Some(KickTrigger::LockTrigger(kick)),
@@ -185,7 +200,7 @@ impl Audio {
             None,
             Some(KickTrigger::Trigger),
             None,
-            Some(KickTrigger::LockTrigger(kick2)),
+            None,
             None,
             Some(KickTrigger::LockTrigger(kick)),
             None,
@@ -193,13 +208,13 @@ impl Audio {
             None,
             Some(KickTrigger::Trigger),
             None,
-            Some(KickTrigger::LockTrigger(kick2)),
+            None,
             None,
         ];
 
         Ok(Audio {
             ctx,
-            schedule_interval: 0.05,
+            schedule_interval: 0.1,
             sequencer: kick_sequencer,
         })
     }
@@ -211,7 +226,8 @@ impl Audio {
         pitch: f32,
         wave_str: &str,
         decay: f32,
-        bite: f32,
+        attack: f32,
+        volume: f32,
     ) -> Result<(), JsValue> {
         let wave = wave_string_to_osc(wave_str);
         let kick = Kick {
@@ -219,7 +235,8 @@ impl Audio {
             pitch,
             wave,
             decay,
-            bite: -30.0 * bite,
+            attack: -30.0 * attack,
+            volume,
         };
         play_kick(&self.ctx, kick, self.ctx.current_time())?;
         // let l = format!("{:?}", self.ctx.current_time());
@@ -235,7 +252,8 @@ impl Audio {
         pitch: f32,
         wave_str: &str,
         decay: f32,
-        bite: f32,
+        attack: f32,
+        volume: f32,
     ) -> Result<(), JsValue> {
         let wave = wave_string_to_osc(wave_str);
         let kick = Kick {
@@ -243,7 +261,8 @@ impl Audio {
             pitch,
             wave,
             decay,
-            bite: -30.0 * bite,
+            attack: -30.0 * attack,
+            volume,
         };
         self.sequencer.default_trigger = kick;
         Ok(())
@@ -268,4 +287,33 @@ impl Audio {
             .schedule_sounds(&self.ctx, self.schedule_interval)?;
         Ok(())
     }
+
+    #[wasm_bindgen]
+    pub fn get_steps(&mut self) -> i8 {
+        let time = self.ctx.current_time();
+        let mut step = get_step(self.sequencer.step_to_schedule);
+        for _ in 0..16 {
+            match self.sequencer.trigger_times[step as usize] {
+                Some(trigger_time) => {
+                    if trigger_time < time {
+                        self.sequencer.step_playing = step;
+                        return step;
+                    }
+                }
+                _ => {}
+            }
+            step = get_step(self.sequencer.step_to_schedule);
+        }
+        // let l = format!("yeyeyey{:?}", step);
+        // console::log_1(&l.into());
+        self.sequencer.step_playing
+    }
+}
+
+fn get_step(i: i8) -> i8 {
+    let mut step = i - 1;
+    if step < 0 {
+        step = 15;
+    }
+    step
 }

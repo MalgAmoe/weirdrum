@@ -15,7 +15,7 @@ app.ports.playSequence.subscribe(function () {
   if (!interval) {
     interval = setInterval(() => {
       sound.schedule();
-    }, 20);
+    }, 40);
   }
 });
 app.ports.stopSequence.subscribe(function () {
@@ -29,6 +29,13 @@ app.ports.updateKick.subscribe(function (params) {
   let { freq, pitch, wave, decay, attack, volume } = params;
   sound.update(freq, pitch, wave, decay, attack, volume);
 });
+
+function getSteps() {
+  const step = sound.get_steps()
+  app.ports.receiveStepNumber.send(step);
+  window.requestAnimationFrame(getSteps)
+}
+window.requestAnimationFrame(getSteps)
 
 // if ("serviceWorker" in navigator) {
 //   window.addEventListener("load", () => {

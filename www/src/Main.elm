@@ -1,7 +1,6 @@
 port module Main exposing (main)
 
 import Browser
-import Debug exposing (toString)
 import Html exposing (Html, button, div, h1, input, span, text)
 import Html.Attributes as A
 import Html.Events exposing (onClick, onInput)
@@ -20,6 +19,9 @@ port stopSequence : () -> Cmd msg
 port updateKick : KickParams -> Cmd msg
 
 
+port receiveStepNumber : (Int -> msg) -> Sub msg
+
+
 type alias KickParams =
     { freq : Float
     , pitch : Float
@@ -34,6 +36,7 @@ type alias Model =
     { playing : Bool
     , value : String
     , kick : KickParams
+    , stepNumber : Int
     }
 
 
@@ -49,6 +52,7 @@ initialModel _ =
             , attack = 0.5
             , volume = 0.1
             }
+      , stepNumber = 0
       }
     , Cmd.none
     )
@@ -64,6 +68,7 @@ type Msg
     | Attack String
     | Volume String
     | Wave String
+    | StepNumber Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -166,6 +171,9 @@ update msg model =
             in
             ( { model | kick = { kick | wave = value } }, updateKick { kick | wave = value } )
 
+        StepNumber step ->
+            ( { model | stepNumber = step }, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
@@ -194,6 +202,7 @@ view model =
         , playingButton model.playing
         , text model.value
         , kickControls model.kick
+        , text (String.fromInt model.stepNumber)
         ]
 
 
@@ -228,9 +237,9 @@ sliderWithValue name value min max step msg =
             , A.style "line-height" "30px"
             ]
             [ span [] [ text name ]
-            , span [ A.style "width" "50px", A.style "text-align" "center" ] [ text (toString value) ]
+            , span [ A.style "width" "50px", A.style "text-align" "center" ] [ text (String.fromFloat value) ]
             ]
-        , input [ A.style "width" "100%", A.type_ "range", A.min min, A.max max, A.step step, A.value (toString value), onInput msg ] []
+        , input [ A.style "width" "100%", A.type_ "range", A.min min, A.max max, A.step step, A.value (String.fromFloat value), onInput msg ] []
         ]
 
 
@@ -280,9 +289,12 @@ playingButton isPlaying =
             [ text "Play" ]
 
 
-subscriptions : a -> Sub msg
-subscriptions model =
-    Sub.none
+
+-- subscriptions : a -> Sub msg
+
+
+subscriptions _ =
+    receiveStepNumber StepNumber
 
 
 main : Program () Model Msg

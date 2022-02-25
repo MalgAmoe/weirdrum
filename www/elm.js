@@ -5281,14 +5281,18 @@ var $author$project$Main$initialModel = function (_v0) {
 		{
 			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.1, wave: 'sine'},
 			playing: false,
+			stepNumber: 0,
 			value: ''
 		},
 		$elm$core$Platform$Cmd$none);
 };
-var $elm$core$Platform$Sub$batch = _Platform_batch;
-var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
-var $author$project$Main$subscriptions = function (model) {
-	return $elm$core$Platform$Sub$none;
+var $author$project$Main$StepNumber = function (a) {
+	return {$: 'StepNumber', a: a};
+};
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $author$project$Main$receiveStepNumber = _Platform_incomingPort('receiveStepNumber', $elm$json$Json$Decode$int);
+var $author$project$Main$subscriptions = function (_v0) {
+	return $author$project$Main$receiveStepNumber($author$project$Main$StepNumber);
 };
 var $elm$parser$Parser$ExpectingFloat = {$: 'ExpectingFloat'};
 var $elm$parser$Parser$Advanced$Parser = function (a) {
@@ -5781,7 +5785,7 @@ var $author$project$Main$update = F2(
 							{value: value}),
 						$elm$core$Platform$Cmd$none);
 				}
-			default:
+			case 'Wave':
 				var value = msg.a;
 				var kick = model.kick;
 				return _Utils_Tuple2(
@@ -5796,6 +5800,13 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							kick,
 							{wave: value})));
+			default:
+				var step = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{stepNumber: step}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Main$PlayKick = {$: 'PlayKick'};
@@ -5816,6 +5827,7 @@ var $author$project$Main$Pitch = function (a) {
 var $author$project$Main$Volume = function (a) {
 	return {$: 'Volume', a: a};
 };
+var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
@@ -5868,7 +5880,6 @@ var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
 var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
 var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
 var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$core$Debug$toString = _Debug_toString;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Main$sliderWithValue = F6(
@@ -5913,7 +5924,7 @@ var $author$project$Main$sliderWithValue = F6(
 							_List_fromArray(
 								[
 									$elm$html$Html$text(
-									$elm$core$Debug$toString(value))
+									$elm$core$String$fromFloat(value))
 								]))
 						])),
 					A2(
@@ -5926,7 +5937,7 @@ var $author$project$Main$sliderWithValue = F6(
 							$elm$html$Html$Attributes$max(max),
 							$elm$html$Html$Attributes$step(step),
 							$elm$html$Html$Attributes$value(
-							$elm$core$Debug$toString(value)),
+							$elm$core$String$fromFloat(value)),
 							$elm$html$Html$Events$onInput(msg)
 						]),
 					_List_Nil)
@@ -6069,7 +6080,9 @@ var $author$project$Main$view = function (model) {
 					])),
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
-				$author$project$Main$kickControls(model.kick)
+				$author$project$Main$kickControls(model.kick),
+				$elm$html$Html$text(
+				$elm$core$String$fromInt(model.stepNumber))
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

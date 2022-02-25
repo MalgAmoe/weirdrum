@@ -41,6 +41,7 @@ features = [
   'OscillatorType',
   'DynamicsCompressorNode',
   'AudioWorklet',
+  'WaveShaperNode',
   'console'
 ]
 
