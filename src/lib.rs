@@ -132,7 +132,7 @@ fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
 }
 
 fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), JsValue> {
-    let time = time_delta + 0.05;
+    let time = time_delta /* + 0.05 */;
     let osc = ctx.create_oscillator()?;
     osc.set_type(values.wave);
     let gain = ctx.create_gain()?;

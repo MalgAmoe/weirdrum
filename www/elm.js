@@ -5809,8 +5809,6 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$none);
 		}
 	});
-var $author$project$Main$PlayKick = {$: 'PlayKick'};
-var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Main$Attack = function (a) {
 	return {$: 'Attack', a: a};
@@ -5946,6 +5944,7 @@ var $author$project$Main$sliderWithValue = F6(
 var $author$project$Main$Wave = function (a) {
 	return {$: 'Wave', a: a};
 };
+var $elm$html$Html$button = _VirtualDom_node('button');
 var $elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6044,6 +6043,50 @@ var $author$project$Main$playingButton = function (isPlaying) {
 				$elm$html$Html$text('Play')
 			]));
 };
+var $author$project$Main$triggerStep = function (isPlaying) {
+	var playingStyles = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'background', 'white'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid blue'),
+			A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
+			A2($elm$html$Html$Attributes$style, 'width', '30px'),
+			A2($elm$html$Html$Attributes$style, 'height', '30px')
+		]);
+	var normalStyles = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'background', 'white'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
+			A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
+			A2($elm$html$Html$Attributes$style, 'width', '30px'),
+			A2($elm$html$Html$Attributes$style, 'height', '30px')
+		]);
+	var style = isPlaying ? playingStyles : normalStyles;
+	return A2($elm$html$Html$div, style, _List_Nil);
+};
+var $author$project$Main$sequencerSteps = function (stepNumber) {
+	var style = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+			A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
+			A2($elm$html$Html$Attributes$style, 'justify-content', 'space-evenly'),
+			A2($elm$html$Html$Attributes$style, 'width', '100%')
+		]);
+	var list = A2($elm$core$List$range, 0, 15);
+	var elements = A2(
+		$elm$core$List$map,
+		function (n) {
+			return $author$project$Main$triggerStep(
+				_Utils_eq(n, stepNumber));
+		},
+		list);
+	return A2($elm$html$Html$div, style, elements);
+};
 var $author$project$Main$view = function (model) {
 	var buttonStyles = _List_fromArray(
 		[
@@ -6068,21 +6111,10 @@ var $author$project$Main$view = function (model) {
 			]),
 		_List_fromArray(
 			[
-				A2(
-				$elm$html$Html$button,
-				A2(
-					$elm$core$List$cons,
-					$elm$html$Html$Events$onClick($author$project$Main$PlayKick),
-					buttonStyles),
-				_List_fromArray(
-					[
-						$elm$html$Html$text('KICKKKKK')
-					])),
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
 				$author$project$Main$kickControls(model.kick),
-				$elm$html$Html$text(
-				$elm$core$String$fromInt(model.stepNumber))
+				$author$project$Main$sequencerSteps(model.stepNumber)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

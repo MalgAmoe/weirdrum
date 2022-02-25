@@ -196,13 +196,10 @@ view model =
         , A.style "min-width" "350px"
         , A.style "margin" "auto"
         ]
-        [ button
-            (onClick PlayKick :: buttonStyles)
-            [ text "KICKKKKK" ]
-        , playingButton model.playing
+        [ playingButton model.playing
         , text model.value
         , kickControls model.kick
-        , text (String.fromInt model.stepNumber)
+        , sequencerSteps model.stepNumber
         ]
 
 
@@ -289,10 +286,61 @@ playingButton isPlaying =
             [ text "Play" ]
 
 
+triggerStep : Bool -> Html msg
+triggerStep isPlaying =
+    let
+        normalStyles =
+            [ A.style "padding" "4px 12px"
+            , A.style "background" "white"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid grey"
+            , A.style "margin-right" "10px"
+            , A.style "width" "30px"
+            , A.style "height" "30px"
+            ]
 
--- subscriptions : a -> Sub msg
+        playingStyles =
+            [ A.style "padding" "4px 12px"
+            , A.style "background" "white"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid blue"
+            , A.style "margin-right" "10px"
+            , A.style "width" "30px"
+            , A.style "height" "30px"
+            ]
+
+        style =
+            if isPlaying then
+                playingStyles
+
+            else
+                normalStyles
+    in
+    div style []
 
 
+sequencerSteps : Int -> Html msg
+sequencerSteps stepNumber =
+    let
+        list =
+            List.range 0 15
+
+        elements =
+            List.map (\n -> triggerStep (n == stepNumber)) list
+
+        style =
+            [ A.style "display" "flex"
+            , A.style "flex-direction" "row"
+            , A.style "justify-content" "space-evenly"
+            , A.style "width" "100%"
+            ]
+    in
+    div style elements
+
+
+subscriptions : a -> Sub Msg
 subscriptions _ =
     receiveStepNumber StepNumber
 
