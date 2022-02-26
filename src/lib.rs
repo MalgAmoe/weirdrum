@@ -205,22 +205,8 @@ impl Audio {
             volume: 0.7,
         };
         kick_sequencer.sequence = [
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
-            None,
+            None, None, None, None, None, None, None, None, None, None, None, None, None, None,
+            None, None,
         ];
 
         Ok(Audio {
@@ -323,8 +309,30 @@ impl Audio {
     #[wasm_bindgen]
     pub fn update_steps(&mut self, steps: JsValue) {
         let elements: Vec<KickValues> = steps.into_serde().unwrap();
-        let l = format!("yeyeyey{:?}", elements);
-        console::log_1(&l.into());
+        let mut steps: [Option<KickTrigger>; 16] = Default::default();
+        for i in 0..16 {
+            steps[i] = match &elements[i] {
+                KickValues {
+                    freq,
+                    pitch,
+                    wave,
+                    decay,
+                    attack,
+                    volume,
+                } => {
+                    if *freq == -1.0 {
+                        None
+                    } else {
+                        // let wave = wave_string_to_osc(&wave);
+                        Some(KickTrigger::Trigger)
+                    }
+                }
+                _ => None,
+            }
+        }
+        self.sequencer.sequence = steps;
+        // let l = format!("yeyeyey{:?}", elements);
+        // console::log_1(&l.into());
     }
 }
 

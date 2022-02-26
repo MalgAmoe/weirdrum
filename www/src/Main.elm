@@ -105,7 +105,7 @@ type Msg
     | Volume String
     | Wave String
     | StepNumber Int
-    | Steps Int--(List Step)
+    | Steps Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
