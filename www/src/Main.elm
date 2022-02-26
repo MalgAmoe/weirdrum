@@ -1,5 +1,6 @@
 port module Main exposing (main)
 
+import Array
 import Browser
 import Html exposing (Html, button, div, h1, input, span, text)
 import Html.Attributes as A
@@ -19,7 +20,16 @@ port stopSequence : () -> Cmd msg
 port updateKick : KickParams -> Cmd msg
 
 
+port updateSequence : List KickParams -> Cmd msg
+
+
 port receiveStepNumber : (Int -> msg) -> Sub msg
+
+
+type Step
+    = Trigger
+    | LockTrigger KickParams
+    | EmptyStep
 
 
 type alias KickParams =
@@ -37,6 +47,7 @@ type alias Model =
     , value : String
     , kick : KickParams
     , stepNumber : Int
+    , steps : List Step
     }
 
 
@@ -53,9 +64,34 @@ initialModel _ =
             , volume = 0.1
             }
       , stepNumber = 0
+      , steps = emptySequencer
       }
     , Cmd.none
     )
+
+
+emptySequencer : List Step
+emptySequencer =
+    List.map (\_ -> EmptyStep) (List.range 0 15)
+
+
+transformStep : KickParams -> Step -> KickParams
+transformStep kickParams step =
+    case step of
+        Trigger ->
+            kickParams
+
+        LockTrigger params ->
+            params
+
+        EmptyStep ->
+            { freq = -1
+            , pitch = 10
+            , wave = "sine"
+            , decay = 0.1
+            , attack = 0.5
+            , volume = 0.1
+            }
 
 
 type Msg
@@ -69,6 +105,7 @@ type Msg
     | Volume String
     | Wave String
     | StepNumber Int
+    | Steps Int--(List Step)
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -174,19 +211,25 @@ update msg model =
         StepNumber step ->
             ( { model | stepNumber = step }, Cmd.none )
 
+        Steps value ->
+            let
+                stepArray = Array.fromList model.steps
+                step = Array.get value stepArray
+
+                newStep = case step of
+                    Just el ->  case el of
+                        EmptyStep -> Trigger
+                        _ -> EmptyStep
+                    _ -> EmptyStep
+
+                newSteps = Array.toList <| Array.set value newStep stepArray
+            in
+        
+            ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+
 
 view : Model -> Html Msg
 view model =
-    let
-        buttonStyles =
-            [ A.style "padding" "4px 12px"
-            , A.style "background" "#e8e7e2"
-            , A.style "border-radius" "28px"
-            , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid grey"
-            , A.style "margin-right" "10px"
-            ]
-    in
     div
         [ A.style "width" "100%"
         , A.style "height" "100%"
@@ -199,7 +242,7 @@ view model =
         [ playingButton model.playing
         , text model.value
         , kickControls model.kick
-        , sequencerSteps model.stepNumber
+        , sequencerSteps model.steps model.stepNumber
         ]
 
 
@@ -286,12 +329,27 @@ playingButton isPlaying =
             [ text "Play" ]
 
 
-triggerStep : Bool -> Html msg
-triggerStep isPlaying =
+triggerStep : Array.Array Step -> Int -> Int -> Html Msg
+triggerStep steps n stepPlaying =
     let
+        isPlaying =
+            n == stepPlaying
+
+        hasTrigger =
+            case Array.get n steps of
+                Just el ->
+                    case el of
+                        EmptyStep ->
+                            False
+
+                        _ ->
+                            True
+
+                _ ->
+                    False
+
         normalStyles =
             [ A.style "padding" "4px 12px"
-            , A.style "background" "white"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
             , A.style "border" "2px solid grey"
@@ -302,14 +360,20 @@ triggerStep isPlaying =
 
         playingStyles =
             [ A.style "padding" "4px 12px"
-            , A.style "background" "white"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid blue"
+            , A.style "border" "2px solid purple"
             , A.style "margin-right" "10px"
             , A.style "width" "30px"
             , A.style "height" "30px"
             ]
+
+        hasTriggerStyle =
+            if hasTrigger then
+                [ A.style "background" "pink" ]
+
+            else
+                [ A.style "background" "white" ]
 
         style =
             if isPlaying then
@@ -318,17 +382,20 @@ triggerStep isPlaying =
             else
                 normalStyles
     in
-    div style []
+    div (onClick (Steps n) :: style ++ hasTriggerStyle) []
 
 
-sequencerSteps : Int -> Html msg
-sequencerSteps stepNumber =
+sequencerSteps : List Step -> Int -> Html Msg
+sequencerSteps steps stepNumber =
     let
         list =
             List.range 0 15
 
+        stepsArray =
+            Array.fromList steps
+
         elements =
-            List.map (\n -> triggerStep (n == stepNumber)) list
+            List.map (\n -> triggerStep stepsArray n stepNumber) list
 
         style =
             [ A.style "display" "flex"

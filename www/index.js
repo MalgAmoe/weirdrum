@@ -29,6 +29,9 @@ app.ports.updateKick.subscribe(function (params) {
   let { freq, pitch, wave, decay, attack, volume } = params;
   sound.update(freq, pitch, wave, decay, attack, volume);
 });
+app.ports.updateSequence.subscribe(function (sequence) {
+  sound.update_steps(sequence)
+});
 
 function getSteps() {
   const step = sound.get_steps()

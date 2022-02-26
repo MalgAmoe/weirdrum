@@ -1,5 +1,6 @@
 mod utils;
 
+use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
 use web_sys::console;
 use web_sys::AudioContext;
@@ -124,6 +125,16 @@ impl Default for Kick {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KickValues {
+    freq: f32,
+    pitch: f32,
+    wave: String,
+    decay: f32,
+    attack: f32,
+    volume: f32,
+}
+
 fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
     match wave {
         "triangle" => web_sys::OscillatorType::Triangle,
@@ -132,7 +143,7 @@ fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
 }
 
 fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), JsValue> {
-    let time = time_delta /* + 0.05 */;
+    let time = time_delta + 0.05;
     let osc = ctx.create_oscillator()?;
     osc.set_type(values.wave);
     let gain = ctx.create_gain()?;
@@ -194,19 +205,19 @@ impl Audio {
             volume: 0.7,
         };
         kick_sequencer.sequence = [
-            Some(KickTrigger::LockTrigger(kick)),
             None,
             None,
             None,
-            Some(KickTrigger::Trigger),
             None,
             None,
             None,
-            Some(KickTrigger::LockTrigger(kick)),
             None,
             None,
             None,
-            Some(KickTrigger::Trigger),
+            None,
+            None,
+            None,
+            None,
             None,
             None,
             None,
@@ -307,6 +318,13 @@ impl Audio {
         // let l = format!("yeyeyey{:?}", step);
         // console::log_1(&l.into());
         self.sequencer.step_playing
+    }
+
+    #[wasm_bindgen]
+    pub fn update_steps(&mut self, steps: JsValue) {
+        let elements: Vec<KickValues> = steps.into_serde().unwrap();
+        let l = format!("yeyeyey{:?}", elements);
+        console::log_1(&l.into());
     }
 }
 

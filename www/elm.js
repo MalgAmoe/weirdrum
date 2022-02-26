@@ -4358,6 +4358,43 @@ function _Browser_load(url)
 
 
 
+var _Bitwise_and = F2(function(a, b)
+{
+	return a & b;
+});
+
+var _Bitwise_or = F2(function(a, b)
+{
+	return a | b;
+});
+
+var _Bitwise_xor = F2(function(a, b)
+{
+	return a ^ b;
+});
+
+function _Bitwise_complement(a)
+{
+	return ~a;
+};
+
+var _Bitwise_shiftLeftBy = F2(function(offset, a)
+{
+	return a << offset;
+});
+
+var _Bitwise_shiftRightBy = F2(function(offset, a)
+{
+	return a >> offset;
+});
+
+var _Bitwise_shiftRightZfBy = F2(function(offset, a)
+{
+	return a >>> offset;
+});
+
+
+
 
 // STRINGS
 
@@ -5274,6 +5311,13 @@ var $elm$core$Task$perform = F2(
 				A2($elm$core$Task$map, toMessage, task)));
 	});
 var $elm$browser$Browser$element = _Browser_element;
+var $author$project$Main$EmptyStep = {$: 'EmptyStep'};
+var $author$project$Main$emptySequencer = A2(
+	$elm$core$List$map,
+	function (_v0) {
+		return $author$project$Main$EmptyStep;
+	},
+	A2($elm$core$List$range, 0, 15));
 var $elm$core$Platform$Cmd$batch = _Platform_batch;
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$initialModel = function (_v0) {
@@ -5282,6 +5326,7 @@ var $author$project$Main$initialModel = function (_v0) {
 			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.1, wave: 'sine'},
 			playing: false,
 			stepNumber: 0,
+			steps: $author$project$Main$emptySequencer,
 			value: ''
 		},
 		$elm$core$Platform$Cmd$none);
@@ -5294,6 +5339,84 @@ var $author$project$Main$receiveStepNumber = _Platform_incomingPort('receiveStep
 var $author$project$Main$subscriptions = function (_v0) {
 	return $author$project$Main$receiveStepNumber($author$project$Main$StepNumber);
 };
+var $author$project$Main$Trigger = {$: 'Trigger'};
+var $elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
+			var jsArray = _v0.a;
+			var remainingItems = _v0.b;
+			if (_Utils_cmp(
+				$elm$core$Elm$JsArray$length(jsArray),
+				$elm$core$Array$branchFactor) < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					true,
+					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					$elm$core$List$cons,
+					$elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var $elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return $elm$core$Array$empty;
+	} else {
+		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
+var $elm$core$Bitwise$and = _Bitwise_and;
+var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
+var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
+var $elm$core$Basics$ge = _Utils_ge;
+var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var $elm$core$Array$getHelp = F3(
+	function (shift, index, tree) {
+		getHelp:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (index >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var subTree = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$index = index,
+					$temp$tree = subTree;
+				shift = $temp$shift;
+				index = $temp$index;
+				tree = $temp$tree;
+				continue getHelp;
+			} else {
+				var values = _v0.a;
+				return A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, values);
+			}
+		}
+	});
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
+};
+var $elm$core$Array$get = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var startShift = _v0.b;
+		var tree = _v0.c;
+		var tail = _v0.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? $elm$core$Maybe$Nothing : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? $elm$core$Maybe$Just(
+			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
+			A3($elm$core$Array$getHelp, startShift, index, tree)));
+	});
 var $elm$parser$Parser$ExpectingFloat = {$: 'ExpectingFloat'};
 var $elm$parser$Parser$Advanced$Parser = function (a) {
 	return {$: 'Parser', a: a};
@@ -5604,10 +5727,65 @@ var $author$project$Main$playSequence = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var $elm$core$Array$setHelp = F4(
+	function (shift, index, value, tree) {
+		var pos = $elm$core$Array$bitMask & (index >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+		if (_v0.$ === 'SubTree') {
+			var subTree = _v0.a;
+			var newSub = A4($elm$core$Array$setHelp, shift - $elm$core$Array$shiftStep, index, value, subTree);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$SubTree(newSub),
+				tree);
+		} else {
+			var values = _v0.a;
+			var newLeaf = A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, values);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$Leaf(newLeaf),
+				tree);
+		}
+	});
+var $elm$core$Array$set = F3(
+	function (index, value, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			tree,
+			A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, tail)) : A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A4($elm$core$Array$setHelp, startShift, index, value, tree),
+			tail));
+	});
 var $author$project$Main$stopSequence = _Platform_outgoingPort(
 	'stopSequence',
 	function ($) {
 		return $elm$json$Json$Encode$null;
+	});
+var $author$project$Main$transformStep = F2(
+	function (kickParams, step) {
+		switch (step.$) {
+			case 'Trigger':
+				return kickParams;
+			case 'LockTrigger':
+				var params = step.a;
+				return params;
+			default:
+				return {attack: 0.5, decay: 0.1, freq: -1, pitch: 10, volume: 0.1, wave: 'sine'};
+		}
 	});
 var $author$project$Main$updateKick = _Platform_outgoingPort(
 	'updateKick',
@@ -5635,6 +5813,42 @@ var $author$project$Main$updateKick = _Platform_outgoingPort(
 					$elm$json$Json$Encode$string($.wave))
 				]));
 	});
+var $elm$json$Json$Encode$list = F2(
+	function (func, entries) {
+		return _Json_wrap(
+			A3(
+				$elm$core$List$foldl,
+				_Json_addEntry(func),
+				_Json_emptyArray(_Utils_Tuple0),
+				entries));
+	});
+var $author$project$Main$updateSequence = _Platform_outgoingPort(
+	'updateSequence',
+	$elm$json$Json$Encode$list(
+		function ($) {
+			return $elm$json$Json$Encode$object(
+				_List_fromArray(
+					[
+						_Utils_Tuple2(
+						'attack',
+						$elm$json$Json$Encode$float($.attack)),
+						_Utils_Tuple2(
+						'decay',
+						$elm$json$Json$Encode$float($.decay)),
+						_Utils_Tuple2(
+						'freq',
+						$elm$json$Json$Encode$float($.freq)),
+						_Utils_Tuple2(
+						'pitch',
+						$elm$json$Json$Encode$float($.pitch)),
+						_Utils_Tuple2(
+						'volume',
+						$elm$json$Json$Encode$float($.volume)),
+						_Utils_Tuple2(
+						'wave',
+						$elm$json$Json$Encode$string($.wave))
+					]));
+		}));
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -5800,13 +6014,42 @@ var $author$project$Main$update = F2(
 						_Utils_update(
 							kick,
 							{wave: value})));
-			default:
+			case 'StepNumber':
 				var step = msg.a;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
 						{stepNumber: step}),
 					$elm$core$Platform$Cmd$none);
+			default:
+				var value = msg.a;
+				var stepArray = $elm$core$Array$fromList(model.steps);
+				var step = A2($elm$core$Array$get, value, stepArray);
+				var newStep = function () {
+					if (step.$ === 'Just') {
+						var el = step.a;
+						if (el.$ === 'EmptyStep') {
+							return $author$project$Main$Trigger;
+						} else {
+							return $author$project$Main$EmptyStep;
+						}
+					} else {
+						return $author$project$Main$EmptyStep;
+					}
+				}();
+				var newSteps = $elm$core$Array$toList(
+					A3($elm$core$Array$set, value, newStep, stepArray));
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{steps: newSteps}),
+					$author$project$Main$updateSequence(
+						A2(
+							$elm$core$List$map,
+							function (a) {
+								return A2($author$project$Main$transformStep, model.kick, a);
+							},
+							newSteps)));
 		}
 	});
 var $elm$html$Html$div = _VirtualDom_node('div');
@@ -6043,60 +6286,82 @@ var $author$project$Main$playingButton = function (isPlaying) {
 				$elm$html$Html$text('Play')
 			]));
 };
-var $author$project$Main$triggerStep = function (isPlaying) {
-	var playingStyles = _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'background', 'white'),
-			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid blue'),
-			A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
-			A2($elm$html$Html$Attributes$style, 'width', '30px'),
-			A2($elm$html$Html$Attributes$style, 'height', '30px')
-		]);
-	var normalStyles = _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'background', 'white'),
-			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
-			A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
-			A2($elm$html$Html$Attributes$style, 'width', '30px'),
-			A2($elm$html$Html$Attributes$style, 'height', '30px')
-		]);
-	var style = isPlaying ? playingStyles : normalStyles;
-	return A2($elm$html$Html$div, style, _List_Nil);
+var $author$project$Main$Steps = function (a) {
+	return {$: 'Steps', a: a};
 };
-var $author$project$Main$sequencerSteps = function (stepNumber) {
-	var style = _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-			A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
-			A2($elm$html$Html$Attributes$style, 'justify-content', 'space-evenly'),
-			A2($elm$html$Html$Attributes$style, 'width', '100%')
-		]);
-	var list = A2($elm$core$List$range, 0, 15);
-	var elements = A2(
-		$elm$core$List$map,
-		function (n) {
-			return $author$project$Main$triggerStep(
-				_Utils_eq(n, stepNumber));
-		},
-		list);
-	return A2($elm$html$Html$div, style, elements);
-};
+var $author$project$Main$triggerStep = F3(
+	function (steps, n, stepPlaying) {
+		var playingStyles = _List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
+				A2($elm$html$Html$Attributes$style, 'width', '30px'),
+				A2($elm$html$Html$Attributes$style, 'height', '30px')
+			]);
+		var normalStyles = _List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
+				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
+				A2($elm$html$Html$Attributes$style, 'width', '30px'),
+				A2($elm$html$Html$Attributes$style, 'height', '30px')
+			]);
+		var isPlaying = _Utils_eq(n, stepPlaying);
+		var style = isPlaying ? playingStyles : normalStyles;
+		var hasTrigger = function () {
+			var _v0 = A2($elm$core$Array$get, n, steps);
+			if (_v0.$ === 'Just') {
+				var el = _v0.a;
+				if (el.$ === 'EmptyStep') {
+					return false;
+				} else {
+					return true;
+				}
+			} else {
+				return false;
+			}
+		}();
+		var hasTriggerStyle = hasTrigger ? _List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'background', 'pink')
+			]) : _List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'background', 'white')
+			]);
+		return A2(
+			$elm$html$Html$div,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Events$onClick(
+					$author$project$Main$Steps(n)),
+				_Utils_ap(style, hasTriggerStyle)),
+			_List_Nil);
+	});
+var $author$project$Main$sequencerSteps = F2(
+	function (steps, stepNumber) {
+		var style = _List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
+				A2($elm$html$Html$Attributes$style, 'justify-content', 'space-evenly'),
+				A2($elm$html$Html$Attributes$style, 'width', '100%')
+			]);
+		var stepsArray = $elm$core$Array$fromList(steps);
+		var list = A2($elm$core$List$range, 0, 15);
+		var elements = A2(
+			$elm$core$List$map,
+			function (n) {
+				return A3($author$project$Main$triggerStep, stepsArray, n, stepNumber);
+			},
+			list);
+		return A2($elm$html$Html$div, style, elements);
+	});
 var $author$project$Main$view = function (model) {
-	var buttonStyles = _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'background', '#e8e7e2'),
-			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
-			A2($elm$html$Html$Attributes$style, 'margin-right', '10px')
-		]);
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -6114,7 +6379,7 @@ var $author$project$Main$view = function (model) {
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
 				$author$project$Main$kickControls(model.kick),
-				$author$project$Main$sequencerSteps(model.stepNumber)
+				A2($author$project$Main$sequencerSteps, model.steps, model.stepNumber)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
