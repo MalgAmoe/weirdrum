@@ -5323,7 +5323,7 @@ var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$initialModel = function (_v0) {
 	return _Utils_Tuple2(
 		{
-			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.1, wave: 'sine'},
+			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.5, wave: 'sine'},
 			playing: false,
 			stepNumber: 0,
 			steps: $author$project$Main$emptySequencer,
@@ -5727,6 +5727,54 @@ var $author$project$Main$playSequence = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $elm$core$List$append = F2(
+	function (xs, ys) {
+		if (!ys.b) {
+			return xs;
+		} else {
+			return A3($elm$core$List$foldr, $elm$core$List$cons, ys, xs);
+		}
+	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $elm$core$List$tail = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(xs);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$Main$rotateSteps = function (steps) {
+	var tail = $elm$core$List$tail(steps);
+	var head = $elm$core$List$head(steps);
+	var newSteps = function () {
+		if (head.$ === 'Just') {
+			var step = head.a;
+			if (tail.$ === 'Just') {
+				var list = tail.a;
+				return A2(
+					$elm$core$List$append,
+					list,
+					_List_fromArray(
+						[step]));
+			} else {
+				return $author$project$Main$emptySequencer;
+			}
+		} else {
+			return $author$project$Main$emptySequencer;
+		}
+	}();
+	return newSteps;
+};
 var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
 var $elm$core$Array$setHelp = F4(
 	function (shift, index, value, tree) {
@@ -6021,7 +6069,7 @@ var $author$project$Main$update = F2(
 						model,
 						{stepNumber: step}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'Steps':
 				var value = msg.a;
 				var stepArray = $elm$core$Array$fromList(model.steps);
 				var step = A2($elm$core$Array$get, value, stepArray);
@@ -6039,6 +6087,28 @@ var $author$project$Main$update = F2(
 				}();
 				var newSteps = $elm$core$Array$toList(
 					A3($elm$core$Array$set, value, newStep, stepArray));
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{steps: newSteps}),
+					$author$project$Main$updateSequence(
+						A2(
+							$elm$core$List$map,
+							function (a) {
+								return A2($author$project$Main$transformStep, model.kick, a);
+							},
+							newSteps)));
+			default:
+				var value = msg.a;
+				var newSteps = function () {
+					if (value.$ === 'Left') {
+						return $author$project$Main$rotateSteps(model.steps);
+					} else {
+						return $elm$core$List$reverse(
+							$author$project$Main$rotateSteps(
+								$elm$core$List$reverse(model.steps)));
+					}
+				}();
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6249,11 +6319,44 @@ var $author$project$Main$kickControls = function (kickParams) {
 				$author$project$Main$waveButton(kickParams.wave === 'sine'),
 				A6($author$project$Main$sliderWithValue, 'freq', kickParams.freq, '30', '90', '0.1', $author$project$Main$Freq),
 				A6($author$project$Main$sliderWithValue, 'pitch', kickParams.pitch, '0', '30', '0.01', $author$project$Main$Pitch),
-				A6($author$project$Main$sliderWithValue, 'decay', kickParams.decay, '0.01', '0.3', '0.001', $author$project$Main$Decay),
 				A6($author$project$Main$sliderWithValue, 'attack', kickParams.attack, '0', '2', '0.001', $author$project$Main$Attack),
+				A6($author$project$Main$sliderWithValue, 'decay', kickParams.decay, '0.01', '0.3', '0.001', $author$project$Main$Decay),
 				A6($author$project$Main$sliderWithValue, 'volume', kickParams.volume, '0', '1', '0.001', $author$project$Main$Volume)
 			]));
 };
+var $author$project$Main$Left = {$: 'Left'};
+var $author$project$Main$Move = function (a) {
+	return {$: 'Move', a: a};
+};
+var $author$project$Main$Right = {$: 'Right'};
+var $author$project$Main$moveStepsButtons = A2(
+	$elm$html$Html$div,
+	_List_Nil,
+	_List_fromArray(
+		[
+			A2(
+			$elm$html$Html$button,
+			_List_fromArray(
+				[
+					$elm$html$Html$Events$onClick(
+					$author$project$Main$Move($author$project$Main$Left))
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('<')
+				])),
+			A2(
+			$elm$html$Html$button,
+			_List_fromArray(
+				[
+					$elm$html$Html$Events$onClick(
+					$author$project$Main$Move($author$project$Main$Right))
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('>')
+				]))
+		]));
 var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
 var $author$project$Main$StopSequence = {$: 'StopSequence'};
 var $author$project$Main$playingButton = function (isPlaying) {
@@ -6296,7 +6399,7 @@ var $author$project$Main$triggerStep = F3(
 				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
 				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-				A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid yellow'),
 				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
 				A2($elm$html$Html$Attributes$style, 'width', '30px'),
 				A2($elm$html$Html$Attributes$style, 'height', '30px')
@@ -6379,6 +6482,7 @@ var $author$project$Main$view = function (model) {
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
 				$author$project$Main$kickControls(model.kick),
+				$author$project$Main$moveStepsButtons,
 				A2($author$project$Main$sequencerSteps, model.steps, model.stepNumber)
 			]));
 };

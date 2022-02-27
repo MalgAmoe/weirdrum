@@ -32,6 +32,11 @@ type Step
     | EmptyStep
 
 
+type StepMove
+    = Left
+    | Right
+
+
 type alias KickParams =
     { freq : Float
     , pitch : Float
@@ -61,7 +66,7 @@ initialModel _ =
             , wave = "sine"
             , decay = 0.1
             , attack = 0.5
-            , volume = 0.1
+            , volume = 0.5
             }
       , stepNumber = 0
       , steps = emptySequencer
@@ -106,6 +111,7 @@ type Msg
     | Wave String
     | StepNumber Int
     | Steps Int
+    | Move StepMove
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -213,19 +219,66 @@ update msg model =
 
         Steps value ->
             let
-                stepArray = Array.fromList model.steps
-                step = Array.get value stepArray
+                stepArray =
+                    Array.fromList model.steps
 
-                newStep = case step of
-                    Just el ->  case el of
-                        EmptyStep -> Trigger
-                        _ -> EmptyStep
-                    _ -> EmptyStep
+                step =
+                    Array.get value stepArray
 
-                newSteps = Array.toList <| Array.set value newStep stepArray
+                newStep =
+                    case step of
+                        Just el ->
+                            case el of
+                                EmptyStep ->
+                                    Trigger
+
+                                _ ->
+                                    EmptyStep
+
+                        _ ->
+                            EmptyStep
+
+                newSteps =
+                    Array.toList <| Array.set value newStep stepArray
             in
-        
             ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+
+        Move value ->
+            let
+                newSteps =
+                    case value of
+                        Left ->
+                            rotateSteps model.steps
+
+                        Right ->
+                            List.reverse <| rotateSteps <| List.reverse model.steps
+            in
+            ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+
+
+rotateSteps : List Step -> List Step
+rotateSteps steps =
+    let
+        head =
+            List.head steps
+
+        tail =
+            List.tail steps
+
+        newSteps =
+            case head of
+                Just step ->
+                    case tail of
+                        Just list ->
+                            List.append list [ step ]
+
+                        _ ->
+                            emptySequencer
+
+                _ ->
+                    emptySequencer
+    in
+    newSteps
 
 
 view : Model -> Html Msg
@@ -242,6 +295,7 @@ view model =
         [ playingButton model.playing
         , text model.value
         , kickControls model.kick
+        , moveStepsButtons
         , sequencerSteps model.steps model.stepNumber
         ]
 
@@ -255,8 +309,8 @@ kickControls kickParams =
         [ waveButton (kickParams.wave == "sine")
         , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" Freq
         , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" Pitch
-        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" Decay
         , sliderWithValue "attack" kickParams.attack "0" "2" "0.001" Attack
+        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" Decay
         , sliderWithValue "volume" kickParams.volume "0" "1" "0.001" Volume
         ]
 
@@ -329,6 +383,14 @@ playingButton isPlaying =
             [ text "Play" ]
 
 
+moveStepsButtons : Html Msg
+moveStepsButtons =
+    div []
+        [ button [ onClick (Move Left) ] [ text "<" ]
+        , button [ onClick (Move Right) ] [ text ">" ]
+        ]
+
+
 triggerStep : Array.Array Step -> Int -> Int -> Html Msg
 triggerStep steps n stepPlaying =
     let
@@ -362,7 +424,7 @@ triggerStep steps n stepPlaying =
             [ A.style "padding" "4px 12px"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid purple"
+            , A.style "border" "2px solid yellow"
             , A.style "margin-right" "10px"
             , A.style "width" "30px"
             , A.style "height" "30px"

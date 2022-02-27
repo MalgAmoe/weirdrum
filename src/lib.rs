@@ -166,7 +166,7 @@ fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), Js
         .exponential_ramp_to_value_at_time(values.freq, time + 0.02)?;
     gain.gain().set_value(0.0);
     gain.gain()
-        .set_target_at_time(0.5 * values.volume, time, 0.0005)?;
+        .set_target_at_time(0.25 * values.volume, time, 0.0005)?;
     let decay = (values.decay * 0.5) as f64;
     gain.gain().set_target_at_time(0.0, time + decay, decay)?;
     osc.start()?;
@@ -323,7 +323,14 @@ impl Audio {
                     if *freq == -1.0 {
                         None
                     } else {
-                        // let wave = wave_string_to_osc(&wave);
+                        self.sequencer.default_trigger = Kick {
+                            freq: *freq,
+                            pitch: *pitch,
+                            wave: wave_string_to_osc(wave),
+                            decay: *decay,
+                            attack: -30.0 * *attack,
+                            volume: *volume, 
+                        };
                         Some(KickTrigger::Trigger)
                     }
                 }
