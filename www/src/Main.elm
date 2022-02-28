@@ -4,7 +4,7 @@ import Array
 import Browser
 import Html exposing (Html, button, div, h1, input, span, text)
 import Html.Attributes as A
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (on, onClick, onInput)
 import Parser exposing (..)
 
 
@@ -64,6 +64,7 @@ type alias Model =
     , kick : KickParams
     , stepNumber : Int
     , steps : List Step
+    , editing : Bool
     }
 
 
@@ -81,6 +82,7 @@ initialModel _ =
             }
       , stepNumber = 0
       , steps = emptySequencer
+      , editing = False
       }
     , Cmd.none
     )
@@ -163,6 +165,7 @@ type Msg
     | StepNumber Int
     | Steps Int
     | Move StepMove
+    | ToggleEdit
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -306,6 +309,9 @@ update msg model =
             in
             ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
+        ToggleEdit ->
+            ( { model | editing = not model.editing }, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
@@ -313,7 +319,6 @@ view model =
         [ A.style "width" "100%"
         , A.style "height" "100%"
         , A.style "font-family" "Helvetica, sans-serif"
-        , A.style "line-height" "3.5em"
         , A.style "width" "50vw"
         , A.style "min-width" "350px"
         , A.style "margin" "auto"
@@ -323,7 +328,10 @@ view model =
         [ playingButton model.playing
         , text model.value
         , kickControls model.kick
-        , moveStepsButtons
+        , sequencerControls
+            [ moveStepsButtons
+            , editStepButton model.editing
+            ]
         , sequencerSteps model.steps model.stepNumber
         ]
 
@@ -373,6 +381,17 @@ sliderWithValue name value min max step msg =
             ]
             []
         ]
+
+
+sequencerControls : List (Html Msg) -> Html Msg
+sequencerControls child =
+    div
+        [ A.style "display" "flex"
+        , A.style "flex-direction" "row"
+        , A.style "justify-content" "flex-start"
+        , A.style "margin-bottom" "5px"
+        ]
+        child
 
 
 waveButton : Bool -> Html Msg
@@ -433,13 +452,43 @@ moveStepsButtons =
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
             , A.style "border" "2px solid purple"
-            , A.style "margin-bottom" "5px"
             ]
     in
     div []
         [ button (onClick (Move Left) :: buttonStyles) [ text "<" ]
         , button (onClick (Move Right) :: buttonStyles) [ text ">" ]
         ]
+
+
+editStepButton : Bool -> Html Msg
+editStepButton editing =
+    let
+        active =
+            [ A.style "background" "purple"
+            , A.style "border" "2px solid yellow"
+            ]
+
+        unactive =
+            [ A.style "background" "black"
+            , A.style "border" "2px solid purple"
+            ]
+
+        basic =
+            [ A.style "padding" "4px 12px"
+            , A.style "color" "yellow"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "margin-left" "5px"
+            ]
+
+        styleUsed =
+            if editing then
+                basic ++ active
+
+            else
+                basic ++ unactive
+    in
+    button (onClick ToggleEdit :: styleUsed) [ text "edit steps" ]
 
 
 triggerStep : Array.Array Step -> Int -> Int -> Html Msg

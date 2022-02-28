@@ -5323,6 +5323,7 @@ var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
 var $author$project$Main$initialModel = function (_v0) {
 	return _Utils_Tuple2(
 		{
+			editing: false,
 			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.5, wave: 'sine'},
 			playing: false,
 			stepNumber: 0,
@@ -5417,6 +5418,7 @@ var $elm$core$Array$get = F2(
 			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
 			A3($elm$core$Array$getHelp, startShift, index, tree)));
 	});
+var $elm$core$Basics$not = _Basics_not;
 var $elm$parser$Parser$ExpectingFloat = {$: 'ExpectingFloat'};
 var $elm$parser$Parser$Advanced$Parser = function (a) {
 	return {$: 'Parser', a: a};
@@ -6101,7 +6103,7 @@ var $author$project$Main$update = F2(
 								return A2($author$project$Main$transformStep, model.kick, a);
 							},
 							newSteps)));
-			default:
+			case 'Move':
 				var value = msg.a;
 				var newSteps = function () {
 					if (value.$ === 'Left') {
@@ -6123,9 +6125,69 @@ var $author$project$Main$update = F2(
 								return A2($author$project$Main$transformStep, model.kick, a);
 							},
 							newSteps)));
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{editing: !model.editing}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $elm$html$Html$div = _VirtualDom_node('div');
+var $author$project$Main$ToggleEdit = {$: 'ToggleEdit'};
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
+var $author$project$Main$editStepButton = function (editing) {
+	var unactive = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'background', 'black'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
+		]);
+	var basic = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'margin-left', '5px')
+		]);
+	var active = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'background', 'purple'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid yellow')
+		]);
+	var styleUsed = editing ? _Utils_ap(basic, active) : _Utils_ap(basic, unactive);
+	return A2(
+		$elm$html$Html$button,
+		A2(
+			$elm$core$List$cons,
+			$elm$html$Html$Events$onClick($author$project$Main$ToggleEdit),
+			styleUsed),
+		_List_fromArray(
+			[
+				$elm$html$Html$text('edit steps')
+			]));
+};
 var $author$project$Main$Attack = function (a) {
 	return {$: 'Attack', a: a};
 };
@@ -6158,7 +6220,6 @@ var $elm$html$Html$Events$alwaysStop = function (x) {
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -6190,10 +6251,6 @@ var $elm$html$Html$span = _VirtualDom_node('span');
 var $elm$html$Html$Attributes$step = function (n) {
 	return A2($elm$html$Html$Attributes$stringProperty, 'step', n);
 };
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$html$Html$Attributes$type_ = $elm$html$Html$Attributes$stringProperty('type');
 var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $author$project$Main$sliderWithValue = F6(
@@ -6261,23 +6318,6 @@ var $author$project$Main$sliderWithValue = F6(
 var $author$project$Main$Wave = function (a) {
 	return {$: 'Wave', a: a};
 };
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $author$project$Main$waveButton = function (isSine) {
 	var buttonStyles = _List_fromArray(
 		[
@@ -6342,8 +6382,7 @@ var $author$project$Main$moveStepsButtons = function () {
 			A2($elm$html$Html$Attributes$style, 'background', 'black'),
 			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
-			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
 		]);
 	return A2(
 		$elm$html$Html$div,
@@ -6406,6 +6445,18 @@ var $author$project$Main$playingButton = function (isPlaying) {
 			[
 				$elm$html$Html$text('Play')
 			]));
+};
+var $author$project$Main$sequencerControls = function (child) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
+				A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
+				A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+			]),
+		child);
 };
 var $author$project$Main$Steps = function (a) {
 	return {$: 'Steps', a: a};
@@ -6490,7 +6541,6 @@ var $author$project$Main$view = function (model) {
 				A2($elm$html$Html$Attributes$style, 'width', '100%'),
 				A2($elm$html$Html$Attributes$style, 'height', '100%'),
 				A2($elm$html$Html$Attributes$style, 'font-family', 'Helvetica, sans-serif'),
-				A2($elm$html$Html$Attributes$style, 'line-height', '3.5em'),
 				A2($elm$html$Html$Attributes$style, 'width', '50vw'),
 				A2($elm$html$Html$Attributes$style, 'min-width', '350px'),
 				A2($elm$html$Html$Attributes$style, 'margin', 'auto'),
@@ -6502,7 +6552,12 @@ var $author$project$Main$view = function (model) {
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
 				$author$project$Main$kickControls(model.kick),
-				$author$project$Main$moveStepsButtons,
+				$author$project$Main$sequencerControls(
+				_List_fromArray(
+					[
+						$author$project$Main$moveStepsButtons,
+						$author$project$Main$editStepButton(model.editing)
+					])),
 				A2($author$project$Main$sequencerSteps, model.steps, model.stepNumber)
 			]));
 };
