@@ -20,7 +20,7 @@ port stopSequence : () -> Cmd msg
 port updateKick : KickParams -> Cmd msg
 
 
-port updateSequence : List KickParams -> Cmd msg
+port updateSequence : List KickParamsOut -> Cmd msg
 
 
 port receiveStepNumber : (Int -> msg) -> Sub msg
@@ -44,6 +44,17 @@ type alias KickParams =
     , decay : Float
     , attack : Float
     , volume : Float
+    }
+
+
+type alias KickParamsOut =
+    { freq : Float
+    , pitch : Float
+    , wave : String
+    , decay : Float
+    , attack : Float
+    , volume : Float
+    , step_type : String
     }
 
 
@@ -80,23 +91,63 @@ emptySequencer =
     List.map (\_ -> EmptyStep) (List.range 0 15)
 
 
-transformStep : KickParams -> Step -> KickParams
+transformStep : KickParams -> Step -> KickParamsOut
 transformStep kickParams step =
     case step of
         Trigger ->
-            kickParams
+            { freq = kickParams.freq
+            , pitch = kickParams.pitch
+            , wave = kickParams.wave
+            , decay = kickParams.decay
+            , attack = kickParams.attack
+            , volume = kickParams.volume
+            , step_type = "trigger"
+            }
 
         LockTrigger params ->
-            params
+            { freq = params.freq
+            , pitch = params.pitch
+            , wave = params.wave
+            , decay = params.decay
+            , attack = params.attack
+            , volume = params.volume
+            , step_type = "lock_trigger"
+            }
 
         EmptyStep ->
-            { freq = -1
-            , pitch = 10
-            , wave = "sine"
-            , decay = 0.1
-            , attack = 0.5
-            , volume = 0.1
+            { freq = 0
+            , pitch = 0
+            , wave = ""
+            , decay = 0
+            , attack = 0
+            , volume = 0
+            , step_type = "empty"
             }
+
+
+rotateSteps : List Step -> List Step
+rotateSteps steps =
+    let
+        head =
+            List.head steps
+
+        tail =
+            List.tail steps
+
+        newSteps =
+            case head of
+                Just step ->
+                    case tail of
+                        Just list ->
+                            List.append list [ step ]
+
+                        _ ->
+                            emptySequencer
+
+                _ ->
+                    emptySequencer
+    in
+    newSteps
 
 
 type Msg
@@ -256,31 +307,6 @@ update msg model =
             ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
 
-rotateSteps : List Step -> List Step
-rotateSteps steps =
-    let
-        head =
-            List.head steps
-
-        tail =
-            List.tail steps
-
-        newSteps =
-            case head of
-                Just step ->
-                    case tail of
-                        Just list ->
-                            List.append list [ step ]
-
-                        _ ->
-                            emptySequencer
-
-                _ ->
-                    emptySequencer
-    in
-    newSteps
-
-
 view : Model -> Html Msg
 view model =
     div
@@ -291,6 +317,8 @@ view model =
         , A.style "width" "50vw"
         , A.style "min-width" "350px"
         , A.style "margin" "auto"
+        , A.style "color" "yellow"
+        , A.style "background-color" "black"
         ]
         [ playingButton model.playing
         , text model.value
@@ -333,7 +361,17 @@ sliderWithValue name value min max step msg =
             [ span [] [ text name ]
             , span [ A.style "width" "50px", A.style "text-align" "center" ] [ text (String.fromFloat value) ]
             ]
-        , input [ A.style "width" "100%", A.type_ "range", A.min min, A.max max, A.step step, A.value (String.fromFloat value), onInput msg ] []
+        , input
+            [ A.style "width" "100%"
+            , A.style "background-color" "purple"
+            , A.type_ "range"
+            , A.min min
+            , A.max max
+            , A.step step
+            , A.value (String.fromFloat value)
+            , onInput msg
+            ]
+            []
         ]
 
 
@@ -342,10 +380,11 @@ waveButton isSine =
     let
         buttonStyles =
             [ A.style "padding" "4px 12px"
-            , A.style "background" "#e8e7e2"
+            , A.style "color" "yellow"
+            , A.style "background" "black"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid grey"
+            , A.style "border" "2px solid purple"
             , A.style "margin-bottom" "5px"
             ]
     in
@@ -365,11 +404,12 @@ playingButton isPlaying =
     let
         buttonStyles =
             [ A.style "padding" "4px 12px"
-            , A.style "background" "#e8e7e2"
+            , A.style "color" "yellow"
+            , A.style "background" "black"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid grey"
-            , A.style "margin-right" "10px"
+            , A.style "border" "2px solid purple"
+            , A.style "margin-bottom" "5px"
             ]
     in
     if isPlaying then
@@ -385,9 +425,20 @@ playingButton isPlaying =
 
 moveStepsButtons : Html Msg
 moveStepsButtons =
+    let
+        buttonStyles =
+            [ A.style "padding" "4px 12px"
+            , A.style "color" "yellow"
+            , A.style "background" "black"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid purple"
+            , A.style "margin-bottom" "5px"
+            ]
+    in
     div []
-        [ button [ onClick (Move Left) ] [ text "<" ]
-        , button [ onClick (Move Right) ] [ text ">" ]
+        [ button (onClick (Move Left) :: buttonStyles) [ text "<" ]
+        , button (onClick (Move Right) :: buttonStyles) [ text ">" ]
         ]
 
 
@@ -414,7 +465,7 @@ triggerStep steps n stepPlaying =
             [ A.style "padding" "4px 12px"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid grey"
+            , A.style "border" "2px solid purple"
             , A.style "margin-right" "10px"
             , A.style "width" "30px"
             , A.style "height" "30px"
@@ -432,10 +483,10 @@ triggerStep steps n stepPlaying =
 
         hasTriggerStyle =
             if hasTrigger then
-                [ A.style "background" "pink" ]
+                [ A.style "background" "purple" ]
 
             else
-                [ A.style "background" "white" ]
+                [ A.style "background" "black" ]
 
         style =
             if isPlaying then

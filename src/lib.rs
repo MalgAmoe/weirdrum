@@ -133,6 +133,7 @@ pub struct KickValues {
     decay: f32,
     attack: f32,
     volume: f32,
+    step_type: String,
 }
 
 fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
@@ -319,22 +320,29 @@ impl Audio {
                     decay,
                     attack,
                     volume,
-                } => {
-                    if *freq == -1.0 {
-                        None
-                    } else {
+                    step_type,
+                } => match step_type.as_str() {
+                    "trigger" => {
                         self.sequencer.default_trigger = Kick {
                             freq: *freq,
                             pitch: *pitch,
                             wave: wave_string_to_osc(wave),
                             decay: *decay,
                             attack: -30.0 * *attack,
-                            volume: *volume, 
+                            volume: *volume,
                         };
                         Some(KickTrigger::Trigger)
                     }
-                }
-                _ => None,
+                    "lock_trigger" => Some(KickTrigger::LockTrigger(Kick {
+                        freq: *freq,
+                        pitch: *pitch,
+                        wave: wave_string_to_osc(wave),
+                        decay: *decay,
+                        attack: -30.0 * *attack,
+                        volume: *volume,
+                    })),
+                    &_ => None,
+                },
             }
         }
         self.sequencer.sequence = steps;

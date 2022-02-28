@@ -5827,12 +5827,12 @@ var $author$project$Main$transformStep = F2(
 	function (kickParams, step) {
 		switch (step.$) {
 			case 'Trigger':
-				return kickParams;
+				return {attack: kickParams.attack, decay: kickParams.decay, freq: kickParams.freq, pitch: kickParams.pitch, step_type: 'trigger', volume: kickParams.volume, wave: kickParams.wave};
 			case 'LockTrigger':
 				var params = step.a;
-				return params;
+				return {attack: params.attack, decay: params.decay, freq: params.freq, pitch: params.pitch, step_type: 'lock_trigger', volume: params.volume, wave: params.wave};
 			default:
-				return {attack: 0.5, decay: 0.1, freq: -1, pitch: 10, volume: 0.1, wave: 'sine'};
+				return {attack: 0, decay: 0, freq: 0, pitch: 0, step_type: 'empty', volume: 0, wave: ''};
 		}
 	});
 var $author$project$Main$updateKick = _Platform_outgoingPort(
@@ -5889,6 +5889,9 @@ var $author$project$Main$updateSequence = _Platform_outgoingPort(
 						_Utils_Tuple2(
 						'pitch',
 						$elm$json$Json$Encode$float($.pitch)),
+						_Utils_Tuple2(
+						'step_type',
+						$elm$json$Json$Encode$string($.step_type)),
 						_Utils_Tuple2(
 						'volume',
 						$elm$json$Json$Encode$float($.volume)),
@@ -6243,6 +6246,7 @@ var $author$project$Main$sliderWithValue = F6(
 					_List_fromArray(
 						[
 							A2($elm$html$Html$Attributes$style, 'width', '100%'),
+							A2($elm$html$Html$Attributes$style, 'background-color', 'purple'),
 							$elm$html$Html$Attributes$type_('range'),
 							$elm$html$Html$Attributes$min(min),
 							$elm$html$Html$Attributes$max(max),
@@ -6278,10 +6282,11 @@ var $author$project$Main$waveButton = function (isSine) {
 	var buttonStyles = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'background', '#e8e7e2'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'background', 'black'),
 			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
 			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
 		]);
 	return isSine ? A2(
@@ -6329,45 +6334,58 @@ var $author$project$Main$Move = function (a) {
 	return {$: 'Move', a: a};
 };
 var $author$project$Main$Right = {$: 'Right'};
-var $author$project$Main$moveStepsButtons = A2(
-	$elm$html$Html$div,
-	_List_Nil,
-	_List_fromArray(
+var $author$project$Main$moveStepsButtons = function () {
+	var buttonStyles = _List_fromArray(
 		[
-			A2(
-			$elm$html$Html$button,
-			_List_fromArray(
-				[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'background', 'black'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+		]);
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$button,
+				A2(
+					$elm$core$List$cons,
 					$elm$html$Html$Events$onClick(
-					$author$project$Main$Move($author$project$Main$Left))
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('<')
-				])),
-			A2(
-			$elm$html$Html$button,
-			_List_fromArray(
-				[
+						$author$project$Main$Move($author$project$Main$Left)),
+					buttonStyles),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('<')
+					])),
+				A2(
+				$elm$html$Html$button,
+				A2(
+					$elm$core$List$cons,
 					$elm$html$Html$Events$onClick(
-					$author$project$Main$Move($author$project$Main$Right))
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('>')
-				]))
-		]));
+						$author$project$Main$Move($author$project$Main$Right)),
+					buttonStyles),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('>')
+					]))
+			]));
+}();
 var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
 var $author$project$Main$StopSequence = {$: 'StopSequence'};
 var $author$project$Main$playingButton = function (isPlaying) {
 	var buttonStyles = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'background', '#e8e7e2'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'background', 'black'),
 			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
-			A2($elm$html$Html$Attributes$style, 'margin-right', '10px')
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
 		]);
 	return isPlaying ? A2(
 		$elm$html$Html$button,
@@ -6409,7 +6427,7 @@ var $author$project$Main$triggerStep = F3(
 				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
 				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-				A2($elm$html$Html$Attributes$style, 'border', '2px solid grey'),
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
 				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
 				A2($elm$html$Html$Attributes$style, 'width', '30px'),
 				A2($elm$html$Html$Attributes$style, 'height', '30px')
@@ -6431,10 +6449,10 @@ var $author$project$Main$triggerStep = F3(
 		}();
 		var hasTriggerStyle = hasTrigger ? _List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'background', 'pink')
+				A2($elm$html$Html$Attributes$style, 'background', 'purple')
 			]) : _List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'background', 'white')
+				A2($elm$html$Html$Attributes$style, 'background', 'black')
 			]);
 		return A2(
 			$elm$html$Html$div,
@@ -6475,7 +6493,9 @@ var $author$project$Main$view = function (model) {
 				A2($elm$html$Html$Attributes$style, 'line-height', '3.5em'),
 				A2($elm$html$Html$Attributes$style, 'width', '50vw'),
 				A2($elm$html$Html$Attributes$style, 'min-width', '350px'),
-				A2($elm$html$Html$Attributes$style, 'margin', 'auto')
+				A2($elm$html$Html$Attributes$style, 'margin', 'auto'),
+				A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+				A2($elm$html$Html$Attributes$style, 'background-color', 'black')
 			]),
 		_List_fromArray(
 			[
