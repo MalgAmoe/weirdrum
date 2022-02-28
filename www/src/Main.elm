@@ -4,7 +4,7 @@ import Array
 import Browser
 import Html exposing (Html, button, div, h1, input, span, text)
 import Html.Attributes as A
-import Html.Events exposing (on, onClick, onInput)
+import Html.Events exposing (onClick, onInput)
 import Parser exposing (..)
 
 
@@ -62,9 +62,11 @@ type alias Model =
     { playing : Bool
     , value : String
     , kick : KickParams
+    , kickEdit : Maybe KickParams
     , stepNumber : Int
     , steps : List Step
     , editing : Bool
+    , editingStep : Maybe Int
     }
 
 
@@ -80,9 +82,11 @@ initialModel _ =
             , attack = 0.5
             , volume = 0.5
             }
+      , kickEdit = Nothing
       , stepNumber = 0
       , steps = emptySequencer
       , editing = False
+      , editingStep = Nothing
       }
     , Cmd.none
     )
@@ -152,6 +156,20 @@ rotateSteps steps =
     newSteps
 
 
+compileSteps steps kickEdit kick stepNumber =
+    let
+        stepArray =
+            Array.fromList steps
+
+        newStep =
+            LockTrigger kickEdit
+
+        newSteps =
+            Array.toList <| Array.set stepNumber newStep stepArray
+    in
+    List.map (\a -> transformStep kick a) newSteps
+
+
 type Msg
     = PlayKick
     | PlaySequence
@@ -194,12 +212,31 @@ update msg model =
                 kick =
                     model.kick
             in
-            case floatValue of
-                Just float ->
-                    ( { model | value = value, kick = { kick | freq = float } }, updateKick { kick | freq = float } )
+            case model.kickEdit of
+                Just kickEdit ->
+                    case floatValue of
+                        Just float ->
+                            case model.editingStep of
+                                Just stepNumber ->
+                                    let
+                                        steps =
+                                            compileSteps model.steps kickEdit model.kick stepNumber
+                                    in
+                                    ( { model | value = value, kickEdit = Just { kickEdit | freq = float } }, updateSequence steps )
+
+                                Nothing ->
+                                    ( model, Cmd.none )
+
+                        Nothing ->
+                            ( { model | value = value }, Cmd.none )
 
                 Nothing ->
-                    ( { model | value = value }, Cmd.none )
+                    case floatValue of
+                        Just float ->
+                            ( { model | value = value, kick = { kick | freq = float } }, updateKick { kick | freq = float } )
+
+                        Nothing ->
+                            ( { model | value = value }, Cmd.none )
 
         Pitch value ->
             let
@@ -284,7 +321,12 @@ update msg model =
                         Just el ->
                             case el of
                                 EmptyStep ->
-                                    Trigger
+                                    case model.kickEdit of
+                                        Just kickEdit ->
+                                            LockTrigger kickEdit
+
+                                        Nothing ->
+                                            Trigger
 
                                 _ ->
                                     EmptyStep
@@ -294,8 +336,15 @@ update msg model =
 
                 newSteps =
                     Array.toList <| Array.set value newStep stepArray
+
+                editingStep =
+                    if model.editing then
+                        Just value
+
+                    else
+                        Nothing
             in
-            ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+            ( { model | steps = newSteps, editingStep = editingStep }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
         Move value ->
             let
@@ -310,11 +359,31 @@ update msg model =
             ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
         ToggleEdit ->
-            ( { model | editing = not model.editing }, Cmd.none )
+            let
+                editing =
+                    not model.editing
+
+                kickEdit =
+                    if editing then
+                        Just model.kick
+
+                    else
+                        Nothing
+            in
+            ( { model | editing = editing, kickEdit = kickEdit, editingStep = Nothing }, Cmd.none )
 
 
 view : Model -> Html Msg
 view model =
+    let
+        controls =
+            case model.kickEdit of
+                Just kickEdit ->
+                    kickEdit
+
+                Nothing ->
+                    model.kick
+    in
     div
         [ A.style "width" "100%"
         , A.style "height" "100%"
@@ -327,12 +396,12 @@ view model =
         ]
         [ playingButton model.playing
         , text model.value
-        , kickControls model.kick
+        , kickControls controls
         , sequencerControls
             [ moveStepsButtons
             , editStepButton model.editing
             ]
-        , sequencerSteps model.steps model.stepNumber
+        , sequencerSteps model.steps model.stepNumber model.editingStep
         ]
 
 
@@ -464,18 +533,19 @@ editStepButton : Bool -> Html Msg
 editStepButton editing =
     let
         active =
-            [ A.style "background" "purple"
-            , A.style "border" "2px solid yellow"
+            [ A.style "background" "yellow"
+            , A.style "color" "purple"
+            , A.style "border" "2px solid purple"
             ]
 
         unactive =
             [ A.style "background" "black"
+            , A.style "color" "yellow"
             , A.style "border" "2px solid purple"
             ]
 
         basic =
             [ A.style "padding" "4px 12px"
-            , A.style "color" "yellow"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
             , A.style "margin-left" "5px"
@@ -491,51 +561,36 @@ editStepButton editing =
     button (onClick ToggleEdit :: styleUsed) [ text "edit steps" ]
 
 
-triggerStep : Array.Array Step -> Int -> Int -> Html Msg
-triggerStep steps n stepPlaying =
+triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> Html Msg
+triggerStep steps n stepPlaying editingStep =
     let
         isPlaying =
             n == stepPlaying
 
-        hasTrigger =
-            case Array.get n steps of
-                Just el ->
-                    case el of
-                        EmptyStep ->
-                            False
+        isEditingStep =
+            case editingStep of
+                Just value ->
+                    value == n
 
-                        _ ->
-                            True
-
-                _ ->
+                Nothing ->
                     False
 
-        normalStyles =
+        basicStyle =
             [ A.style "padding" "4px 12px"
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid purple"
             , A.style "margin-right" "10px"
             , A.style "width" "30px"
             , A.style "height" "30px"
+            ]
+
+        normalStyles =
+            [ A.style "border" "2px solid purple"
             ]
 
         playingStyles =
-            [ A.style "padding" "4px 12px"
-            , A.style "border-radius" "28px"
-            , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid yellow"
-            , A.style "margin-right" "10px"
-            , A.style "width" "30px"
-            , A.style "height" "30px"
+            [ A.style "border" "2px solid yellow"
             ]
-
-        hasTriggerStyle =
-            if hasTrigger then
-                [ A.style "background" "purple" ]
-
-            else
-                [ A.style "background" "black" ]
 
         style =
             if isPlaying then
@@ -543,12 +598,32 @@ triggerStep steps n stepPlaying =
 
             else
                 normalStyles
+
+        triggerStyle =
+            case Array.get n steps of
+                Just el ->
+                    case el of
+                        EmptyStep ->
+                            [ A.style "background" "black" ]
+
+                        Trigger ->
+                            [ A.style "background" "purple" ]
+
+                        LockTrigger _ ->
+                            if isEditingStep then
+                                [ A.style "background" "yellow" ]
+
+                            else
+                                [ A.style "background" "fuchsia" ]
+
+                _ ->
+                    [ A.style "background" "black" ]
     in
-    div (onClick (Steps n) :: style ++ hasTriggerStyle) []
+    div (onClick (Steps n) :: basicStyle ++ style ++ triggerStyle) []
 
 
-sequencerSteps : List Step -> Int -> Html Msg
-sequencerSteps steps stepNumber =
+sequencerSteps : List Step -> Int -> Maybe Int -> Html Msg
+sequencerSteps steps stepNumber editingStep =
     let
         list =
             List.range 0 15
@@ -557,7 +632,7 @@ sequencerSteps steps stepNumber =
             Array.fromList steps
 
         elements =
-            List.map (\n -> triggerStep stepsArray n stepNumber) list
+            List.map (\n -> triggerStep stepsArray n stepNumber editingStep) list
 
         style =
             [ A.style "display" "flex"

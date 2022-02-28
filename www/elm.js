@@ -5324,7 +5324,9 @@ var $author$project$Main$initialModel = function (_v0) {
 	return _Utils_Tuple2(
 		{
 			editing: false,
+			editingStep: $elm$core$Maybe$Nothing,
 			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.5, wave: 'sine'},
+			kickEdit: $elm$core$Maybe$Nothing,
 			playing: false,
 			stepNumber: 0,
 			steps: $author$project$Main$emptySequencer,
@@ -5339,6 +5341,9 @@ var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $author$project$Main$receiveStepNumber = _Platform_incomingPort('receiveStepNumber', $elm$json$Json$Decode$int);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $author$project$Main$receiveStepNumber($author$project$Main$StepNumber);
+};
+var $author$project$Main$LockTrigger = function (a) {
+	return {$: 'LockTrigger', a: a};
 };
 var $author$project$Main$Trigger = {$: 'Trigger'};
 var $elm$core$Array$fromListHelp = F3(
@@ -5381,6 +5386,78 @@ var $elm$core$Bitwise$shiftRightZfBy = _Bitwise_shiftRightZfBy;
 var $elm$core$Array$bitMask = 4294967295 >>> (32 - $elm$core$Array$shiftStep);
 var $elm$core$Basics$ge = _Utils_ge;
 var $elm$core$Elm$JsArray$unsafeGet = _JsArray_unsafeGet;
+var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
+var $elm$core$Array$setHelp = F4(
+	function (shift, index, value, tree) {
+		var pos = $elm$core$Array$bitMask & (index >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+		if (_v0.$ === 'SubTree') {
+			var subTree = _v0.a;
+			var newSub = A4($elm$core$Array$setHelp, shift - $elm$core$Array$shiftStep, index, value, subTree);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$SubTree(newSub),
+				tree);
+		} else {
+			var values = _v0.a;
+			var newLeaf = A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, values);
+			return A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				pos,
+				$elm$core$Array$Leaf(newLeaf),
+				tree);
+		}
+	});
+var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
+var $elm$core$Array$tailIndex = function (len) {
+	return (len >>> 5) << 5;
+};
+var $elm$core$Array$set = F3(
+	function (index, value, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
+			index,
+			$elm$core$Array$tailIndex(len)) > -1) ? A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			tree,
+			A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, tail)) : A4(
+			$elm$core$Array$Array_elm_builtin,
+			len,
+			startShift,
+			A4($elm$core$Array$setHelp, startShift, index, value, tree),
+			tail));
+	});
+var $author$project$Main$transformStep = F2(
+	function (kickParams, step) {
+		switch (step.$) {
+			case 'Trigger':
+				return {attack: kickParams.attack, decay: kickParams.decay, freq: kickParams.freq, pitch: kickParams.pitch, step_type: 'trigger', volume: kickParams.volume, wave: kickParams.wave};
+			case 'LockTrigger':
+				var params = step.a;
+				return {attack: params.attack, decay: params.decay, freq: params.freq, pitch: params.pitch, step_type: 'lock_trigger', volume: params.volume, wave: params.wave};
+			default:
+				return {attack: 0, decay: 0, freq: 0, pitch: 0, step_type: 'empty', volume: 0, wave: ''};
+		}
+	});
+var $author$project$Main$compileSteps = F4(
+	function (steps, kickEdit, kick, stepNumber) {
+		var stepArray = $elm$core$Array$fromList(steps);
+		var newStep = $author$project$Main$LockTrigger(kickEdit);
+		var newSteps = $elm$core$Array$toList(
+			A3($elm$core$Array$set, stepNumber, newStep, stepArray));
+		return A2(
+			$elm$core$List$map,
+			function (a) {
+				return A2($author$project$Main$transformStep, kick, a);
+			},
+			newSteps);
+	});
 var $elm$core$Array$getHelp = F3(
 	function (shift, index, tree) {
 		getHelp:
@@ -5402,10 +5479,6 @@ var $elm$core$Array$getHelp = F3(
 			}
 		}
 	});
-var $elm$core$Bitwise$shiftLeftBy = _Bitwise_shiftLeftBy;
-var $elm$core$Array$tailIndex = function (len) {
-	return (len >>> 5) << 5;
-};
 var $elm$core$Array$get = F2(
 	function (index, _v0) {
 		var len = _v0.a;
@@ -5777,65 +5850,10 @@ var $author$project$Main$rotateSteps = function (steps) {
 	}();
 	return newSteps;
 };
-var $elm$core$Elm$JsArray$unsafeSet = _JsArray_unsafeSet;
-var $elm$core$Array$setHelp = F4(
-	function (shift, index, value, tree) {
-		var pos = $elm$core$Array$bitMask & (index >>> shift);
-		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
-		if (_v0.$ === 'SubTree') {
-			var subTree = _v0.a;
-			var newSub = A4($elm$core$Array$setHelp, shift - $elm$core$Array$shiftStep, index, value, subTree);
-			return A3(
-				$elm$core$Elm$JsArray$unsafeSet,
-				pos,
-				$elm$core$Array$SubTree(newSub),
-				tree);
-		} else {
-			var values = _v0.a;
-			var newLeaf = A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, values);
-			return A3(
-				$elm$core$Elm$JsArray$unsafeSet,
-				pos,
-				$elm$core$Array$Leaf(newLeaf),
-				tree);
-		}
-	});
-var $elm$core$Array$set = F3(
-	function (index, value, array) {
-		var len = array.a;
-		var startShift = array.b;
-		var tree = array.c;
-		var tail = array.d;
-		return ((index < 0) || (_Utils_cmp(index, len) > -1)) ? array : ((_Utils_cmp(
-			index,
-			$elm$core$Array$tailIndex(len)) > -1) ? A4(
-			$elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			tree,
-			A3($elm$core$Elm$JsArray$unsafeSet, $elm$core$Array$bitMask & index, value, tail)) : A4(
-			$elm$core$Array$Array_elm_builtin,
-			len,
-			startShift,
-			A4($elm$core$Array$setHelp, startShift, index, value, tree),
-			tail));
-	});
 var $author$project$Main$stopSequence = _Platform_outgoingPort(
 	'stopSequence',
 	function ($) {
 		return $elm$json$Json$Encode$null;
-	});
-var $author$project$Main$transformStep = F2(
-	function (kickParams, step) {
-		switch (step.$) {
-			case 'Trigger':
-				return {attack: kickParams.attack, decay: kickParams.decay, freq: kickParams.freq, pitch: kickParams.pitch, step_type: 'trigger', volume: kickParams.volume, wave: kickParams.wave};
-			case 'LockTrigger':
-				var params = step.a;
-				return {attack: params.attack, decay: params.decay, freq: params.freq, pitch: params.pitch, step_type: 'lock_trigger', volume: params.volume, wave: params.wave};
-			default:
-				return {attack: 0, decay: 0, freq: 0, pitch: 0, step_type: 'empty', volume: 0, wave: ''};
-		}
 	});
 var $author$project$Main$updateKick = _Platform_outgoingPort(
 	'updateKick',
@@ -5926,27 +5944,59 @@ var $author$project$Main$update = F2(
 				var value = msg.a;
 				var kick = model.kick;
 				var floatValue = $author$project$Main$parseString(value);
-				if (floatValue.$ === 'Just') {
-					var _float = floatValue.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								kick: _Utils_update(
-									kick,
-									{freq: _float}),
-								value: value
-							}),
-						$author$project$Main$updateKick(
+				var _v1 = model.kickEdit;
+				if (_v1.$ === 'Just') {
+					var kickEdit = _v1.a;
+					if (floatValue.$ === 'Just') {
+						var _float = floatValue.a;
+						var _v3 = model.editingStep;
+						if (_v3.$ === 'Just') {
+							var stepNumber = _v3.a;
+							var steps = A4($author$project$Main$compileSteps, model.steps, kickEdit, model.kick, stepNumber);
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										kickEdit: $elm$core$Maybe$Just(
+											_Utils_update(
+												kickEdit,
+												{freq: _float})),
+										value: value
+									}),
+								$author$project$Main$updateSequence(steps));
+						} else {
+							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+						}
+					} else {
+						return _Utils_Tuple2(
 							_Utils_update(
-								kick,
-								{freq: _float})));
+								model,
+								{value: value}),
+							$elm$core$Platform$Cmd$none);
+					}
 				} else {
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{value: value}),
-						$elm$core$Platform$Cmd$none);
+					if (floatValue.$ === 'Just') {
+						var _float = floatValue.a;
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{
+									kick: _Utils_update(
+										kick,
+										{freq: _float}),
+									value: value
+								}),
+							$author$project$Main$updateKick(
+								_Utils_update(
+									kick,
+									{freq: _float})));
+					} else {
+						return _Utils_Tuple2(
+							_Utils_update(
+								model,
+								{value: value}),
+							$elm$core$Platform$Cmd$none);
+					}
 				}
 			case 'Pitch':
 				var value = msg.a;
@@ -6082,7 +6132,13 @@ var $author$project$Main$update = F2(
 					if (step.$ === 'Just') {
 						var el = step.a;
 						if (el.$ === 'EmptyStep') {
-							return $author$project$Main$Trigger;
+							var _v11 = model.kickEdit;
+							if (_v11.$ === 'Just') {
+								var kickEdit = _v11.a;
+								return $author$project$Main$LockTrigger(kickEdit);
+							} else {
+								return $author$project$Main$Trigger;
+							}
 						} else {
 							return $author$project$Main$EmptyStep;
 						}
@@ -6092,10 +6148,11 @@ var $author$project$Main$update = F2(
 				}();
 				var newSteps = $elm$core$Array$toList(
 					A3($elm$core$Array$set, value, newStep, stepArray));
+				var editingStep = model.editing ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{steps: newSteps}),
+						{editingStep: editingStep, steps: newSteps}),
 					$author$project$Main$updateSequence(
 						A2(
 							$elm$core$List$map,
@@ -6126,10 +6183,12 @@ var $author$project$Main$update = F2(
 							},
 							newSteps)));
 			default:
+				var editing = !model.editing;
+				var kickEdit = editing ? $elm$core$Maybe$Just(model.kick) : $elm$core$Maybe$Nothing;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{editing: !model.editing}),
+						{editing: editing, editingStep: $elm$core$Maybe$Nothing, kickEdit: kickEdit}),
 					$elm$core$Platform$Cmd$none);
 		}
 	});
@@ -6161,20 +6220,21 @@ var $author$project$Main$editStepButton = function (editing) {
 	var unactive = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'background', 'black'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
 			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
 		]);
 	var basic = _List_fromArray(
 		[
 			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
 			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
 			A2($elm$html$Html$Attributes$style, 'margin-left', '5px')
 		]);
 	var active = _List_fromArray(
 		[
-			A2($elm$html$Html$Attributes$style, 'background', 'purple'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid yellow')
+			A2($elm$html$Html$Attributes$style, 'background', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'color', 'purple'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
 		]);
 	var styleUsed = editing ? _Utils_ap(basic, active) : _Utils_ap(basic, unactive);
 	return A2(
@@ -6461,49 +6521,65 @@ var $author$project$Main$sequencerControls = function (child) {
 var $author$project$Main$Steps = function (a) {
 	return {$: 'Steps', a: a};
 };
-var $author$project$Main$triggerStep = F3(
-	function (steps, n, stepPlaying) {
+var $author$project$Main$triggerStep = F4(
+	function (steps, n, stepPlaying, editingStep) {
 		var playingStyles = _List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-				A2($elm$html$Html$Attributes$style, 'border', '2px solid yellow'),
-				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
-				A2($elm$html$Html$Attributes$style, 'width', '30px'),
-				A2($elm$html$Html$Attributes$style, 'height', '30px')
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid yellow')
 			]);
 		var normalStyles = _List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-				A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
-				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
-				A2($elm$html$Html$Attributes$style, 'width', '30px'),
-				A2($elm$html$Html$Attributes$style, 'height', '30px')
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
 			]);
 		var isPlaying = _Utils_eq(n, stepPlaying);
 		var style = isPlaying ? playingStyles : normalStyles;
-		var hasTrigger = function () {
-			var _v0 = A2($elm$core$Array$get, n, steps);
-			if (_v0.$ === 'Just') {
-				var el = _v0.a;
-				if (el.$ === 'EmptyStep') {
-					return false;
-				} else {
-					return true;
-				}
+		var isEditingStep = function () {
+			if (editingStep.$ === 'Just') {
+				var value = editingStep.a;
+				return _Utils_eq(value, n);
 			} else {
 				return false;
 			}
 		}();
-		var hasTriggerStyle = hasTrigger ? _List_fromArray(
+		var triggerStyle = function () {
+			var _v0 = A2($elm$core$Array$get, n, steps);
+			if (_v0.$ === 'Just') {
+				var el = _v0.a;
+				switch (el.$) {
+					case 'EmptyStep':
+						return _List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'background', 'black')
+							]);
+					case 'Trigger':
+						return _List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'background', 'purple')
+							]);
+					default:
+						return isEditingStep ? _List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'background', 'yellow')
+							]) : _List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'background', 'fuchsia')
+							]);
+				}
+			} else {
+				return _List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'background', 'black')
+					]);
+			}
+		}();
+		var basicStyle = _List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'background', 'purple')
-			]) : _List_fromArray(
-			[
-				A2($elm$html$Html$Attributes$style, 'background', 'black')
+				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+				A2($elm$html$Html$Attributes$style, 'margin-right', '10px'),
+				A2($elm$html$Html$Attributes$style, 'width', '30px'),
+				A2($elm$html$Html$Attributes$style, 'height', '30px')
 			]);
 		return A2(
 			$elm$html$Html$div,
@@ -6511,11 +6587,13 @@ var $author$project$Main$triggerStep = F3(
 				$elm$core$List$cons,
 				$elm$html$Html$Events$onClick(
 					$author$project$Main$Steps(n)),
-				_Utils_ap(style, hasTriggerStyle)),
+				_Utils_ap(
+					basicStyle,
+					_Utils_ap(style, triggerStyle))),
 			_List_Nil);
 	});
-var $author$project$Main$sequencerSteps = F2(
-	function (steps, stepNumber) {
+var $author$project$Main$sequencerSteps = F3(
+	function (steps, stepNumber, editingStep) {
 		var style = _List_fromArray(
 			[
 				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
@@ -6528,12 +6606,21 @@ var $author$project$Main$sequencerSteps = F2(
 		var elements = A2(
 			$elm$core$List$map,
 			function (n) {
-				return A3($author$project$Main$triggerStep, stepsArray, n, stepNumber);
+				return A4($author$project$Main$triggerStep, stepsArray, n, stepNumber, editingStep);
 			},
 			list);
 		return A2($elm$html$Html$div, style, elements);
 	});
 var $author$project$Main$view = function (model) {
+	var controls = function () {
+		var _v0 = model.kickEdit;
+		if (_v0.$ === 'Just') {
+			var kickEdit = _v0.a;
+			return kickEdit;
+		} else {
+			return model.kick;
+		}
+	}();
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -6551,14 +6638,14 @@ var $author$project$Main$view = function (model) {
 			[
 				$author$project$Main$playingButton(model.playing),
 				$elm$html$Html$text(model.value),
-				$author$project$Main$kickControls(model.kick),
+				$author$project$Main$kickControls(controls),
 				$author$project$Main$sequencerControls(
 				_List_fromArray(
 					[
 						$author$project$Main$moveStepsButtons,
 						$author$project$Main$editStepButton(model.editing)
 					])),
-				A2($author$project$Main$sequencerSteps, model.steps, model.stepNumber)
+				A3($author$project$Main$sequencerSteps, model.steps, model.stepNumber, model.editingStep)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(
