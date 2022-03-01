@@ -5446,17 +5446,19 @@ var $author$project$Main$transformStep = F2(
 		}
 	});
 var $author$project$Main$compileSteps = F4(
-	function (steps, kickEdit, kick, stepNumber) {
+	function (steps, kick, kickEdit, stepNumber) {
 		var stepArray = $elm$core$Array$fromList(steps);
 		var newStep = $author$project$Main$LockTrigger(kickEdit);
 		var newSteps = $elm$core$Array$toList(
 			A3($elm$core$Array$set, stepNumber, newStep, stepArray));
-		return A2(
-			$elm$core$List$map,
-			function (a) {
-				return A2($author$project$Main$transformStep, kick, a);
-			},
-			newSteps);
+		return _Utils_Tuple2(
+			newSteps,
+			A2(
+				$elm$core$List$map,
+				function (a) {
+					return A2($author$project$Main$transformStep, kick, a);
+				},
+				newSteps));
 	});
 var $elm$core$Array$getHelp = F3(
 	function (shift, index, tree) {
@@ -5952,20 +5954,32 @@ var $author$project$Main$update = F2(
 						var _v3 = model.editingStep;
 						if (_v3.$ === 'Just') {
 							var stepNumber = _v3.a;
-							var steps = A4($author$project$Main$compileSteps, model.steps, kickEdit, model.kick, stepNumber);
+							var newKick = _Utils_update(
+								kickEdit,
+								{freq: _float});
+							var _v4 = A4($author$project$Main$compileSteps, model.steps, model.kick, newKick, stepNumber);
+							var steps = _v4.a;
+							var compiledSteps = _v4.b;
 							return _Utils_Tuple2(
 								_Utils_update(
 									model,
 									{
-										kickEdit: $elm$core$Maybe$Just(
-											_Utils_update(
-												kickEdit,
-												{freq: _float})),
+										kickEdit: $elm$core$Maybe$Just(newKick),
+										steps: steps,
 										value: value
 									}),
-								$author$project$Main$updateSequence(steps));
+								$author$project$Main$updateSequence(compiledSteps));
 						} else {
-							return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+							var newKick = _Utils_update(
+								kickEdit,
+								{freq: _float});
+							return _Utils_Tuple2(
+								_Utils_update(
+									model,
+									{
+										kickEdit: $elm$core$Maybe$Just(newKick)
+									}),
+								$elm$core$Platform$Cmd$none);
 						}
 					} else {
 						return _Utils_Tuple2(
@@ -6132,9 +6146,9 @@ var $author$project$Main$update = F2(
 					if (step.$ === 'Just') {
 						var el = step.a;
 						if (el.$ === 'EmptyStep') {
-							var _v11 = model.kickEdit;
-							if (_v11.$ === 'Just') {
-								var kickEdit = _v11.a;
+							var _v12 = model.kickEdit;
+							if (_v12.$ === 'Just') {
+								var kickEdit = _v12.a;
 								return $author$project$Main$LockTrigger(kickEdit);
 							} else {
 								return $author$project$Main$Trigger;
@@ -6174,7 +6188,7 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{steps: newSteps}),
+						{editingStep: $elm$core$Maybe$Nothing, steps: newSteps}),
 					$author$project$Main$updateSequence(
 						A2(
 							$elm$core$List$map,

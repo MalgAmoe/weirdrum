@@ -156,7 +156,8 @@ rotateSteps steps =
     newSteps
 
 
-compileSteps steps kickEdit kick stepNumber =
+compileSteps : List Step -> KickParams -> KickParams -> Int -> (List Step , List KickParamsOut)
+compileSteps steps kick kickEdit stepNumber =
     let
         stepArray =
             Array.fromList steps
@@ -167,7 +168,7 @@ compileSteps steps kickEdit kick stepNumber =
         newSteps =
             Array.toList <| Array.set stepNumber newStep stepArray
     in
-    List.map (\a -> transformStep kick a) newSteps
+    (newSteps, List.map (\a -> transformStep kick a) newSteps)
 
 
 type Msg
@@ -219,13 +220,20 @@ update msg model =
                             case model.editingStep of
                                 Just stepNumber ->
                                     let
-                                        steps =
-                                            compileSteps model.steps kickEdit model.kick stepNumber
+                                        newKick =
+                                            { kickEdit | freq = float }
+
+                                        (steps, compiledSteps) =
+                                            compileSteps model.steps model.kick newKick stepNumber
                                     in
-                                    ( { model | value = value, kickEdit = Just { kickEdit | freq = float } }, updateSequence steps )
+                                    ( { model | value = value, kickEdit = Just newKick, steps = steps }, updateSequence compiledSteps )
 
                                 Nothing ->
-                                    ( model, Cmd.none )
+                                    let
+                                        newKick =
+                                            { kickEdit | freq = float }
+                                    in
+                                    ( { model | kickEdit = Just newKick }, Cmd.none )
 
                         Nothing ->
                             ( { model | value = value }, Cmd.none )
@@ -336,7 +344,6 @@ update msg model =
 
                 newSteps =
                     Array.toList <| Array.set value newStep stepArray
-
                 editingStep =
                     if model.editing then
                         Just value
@@ -356,7 +363,7 @@ update msg model =
                         Right ->
                             List.reverse <| rotateSteps <| List.reverse model.steps
             in
-            ( { model | steps = newSteps }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+            ( { model | steps = newSteps, editingStep = Nothing }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
         ToggleEdit ->
             let
