@@ -189,6 +189,21 @@ compileSteps steps kick kickEdit stepNumber =
     ( newSteps, List.map (\a -> transformStep kick a) newSteps )
 
 
+clipValues : comparable -> comparable -> comparable -> comparable
+clipValues value min max =
+    value
+        |> (\a ->
+                if a > max then
+                    max
+
+                else if a < min then
+                    min
+
+                else
+                    a
+           )
+
+
 type Msg
     = PlayKick
     | PlaySequence
@@ -225,7 +240,7 @@ update msg model =
                 freq =
                     case parseString params.freq of
                         Just value ->
-                            value
+                            clipValues value 30 90
 
                         Nothing ->
                             model.kick.freq
@@ -233,7 +248,7 @@ update msg model =
                 pitch =
                     case parseString params.pitch of
                         Just value ->
-                            value
+                            clipValues value 0 30
 
                         Nothing ->
                             model.kick.pitch
@@ -241,7 +256,7 @@ update msg model =
                 punch =
                     case parseString params.punch of
                         Just value ->
-                            value
+                            clipValues value 0 2
 
                         Nothing ->
                             model.kick.punch
@@ -249,7 +264,7 @@ update msg model =
                 decay =
                     case parseString params.decay of
                         Just value ->
-                            value
+                            clipValues value 0.01 0.3
 
                         Nothing ->
                             model.kick.decay
@@ -257,7 +272,7 @@ update msg model =
                 volume =
                     case parseString params.volume of
                         Just value ->
-                            value
+                            clipValues value 0.01 1
 
                         Nothing ->
                             model.kick.volume
@@ -368,7 +383,7 @@ update msg model =
                             |> Result.toMaybe
                     of
                         Just value ->
-                            value
+                            clipValues value 2 16
 
                         Nothing ->
                             16
@@ -378,20 +393,13 @@ update msg model =
         UpdateOffset value ->
             let
                 offset =
-                    model.offset
-                        + value
-                        |> (\a ->
-                                if a > 5 then
-                                    5
+                    clipValues
+                        (model.offset + value)
+                        -5
+                        5
 
-                                else if a < -5 then
-                                    -5
-
-                                else
-                                    a
-                           )
-
-                offsetFloat = (toFloat offset) * 0.01
+                offsetFloat =
+                    toFloat offset * 0.01
             in
             ( { model | offset = offset }, updateOffset offsetFloat )
 
@@ -480,7 +488,7 @@ kickControls kickParams =
         , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" (\a -> UpdateParams { s | pitch = a })
         , sliderWithValue "punch" kickParams.punch "0" "2" "0.001" (\a -> UpdateParams { s | punch = a })
         , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateParams { s | decay = a })
-        , sliderWithValue "volume" kickParams.volume "0" "1" "0.001" (\a -> UpdateParams { s | volume = a })
+        , sliderWithValue "volume" kickParams.volume "0.01" "1" "0.001" (\a -> UpdateParams { s | volume = a })
         ]
 
 

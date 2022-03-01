@@ -5347,6 +5347,12 @@ var $author$project$Main$LockTrigger = function (a) {
 	return {$: 'LockTrigger', a: a};
 };
 var $author$project$Main$Trigger = {$: 'Trigger'};
+var $author$project$Main$clipValues = F3(
+	function (value, min, max) {
+		return function (a) {
+			return (_Utils_cmp(a, max) > 0) ? max : ((_Utils_cmp(a, min) < 0) ? min : a);
+		}(value);
+	});
 var $elm$core$Array$fromListHelp = F3(
 	function (list, nodeList, nodeListSize) {
 		fromListHelp:
@@ -6190,7 +6196,7 @@ var $author$project$Main$update = F2(
 					var _v8 = $author$project$Main$parseString(params.volume);
 					if (_v8.$ === 'Just') {
 						var value = _v8.a;
-						return value;
+						return A3($author$project$Main$clipValues, value, 0.01, 1);
 					} else {
 						return model.kick.volume;
 					}
@@ -6199,7 +6205,7 @@ var $author$project$Main$update = F2(
 					var _v7 = $author$project$Main$parseString(params.punch);
 					if (_v7.$ === 'Just') {
 						var value = _v7.a;
-						return value;
+						return A3($author$project$Main$clipValues, value, 0, 2);
 					} else {
 						return model.kick.punch;
 					}
@@ -6208,7 +6214,7 @@ var $author$project$Main$update = F2(
 					var _v6 = $author$project$Main$parseString(params.pitch);
 					if (_v6.$ === 'Just') {
 						var value = _v6.a;
-						return value;
+						return A3($author$project$Main$clipValues, value, 0, 30);
 					} else {
 						return model.kick.pitch;
 					}
@@ -6217,7 +6223,7 @@ var $author$project$Main$update = F2(
 					var _v5 = $author$project$Main$parseString(params.freq);
 					if (_v5.$ === 'Just') {
 						var value = _v5.a;
-						return value;
+						return A3($author$project$Main$clipValues, value, 30, 90);
 					} else {
 						return model.kick.freq;
 					}
@@ -6226,7 +6232,7 @@ var $author$project$Main$update = F2(
 					var _v4 = $author$project$Main$parseString(params.decay);
 					if (_v4.$ === 'Just') {
 						var value = _v4.a;
-						return value;
+						return A3($author$project$Main$clipValues, value, 0.01, 0.3);
 					} else {
 						return model.kick.decay;
 					}
@@ -6351,7 +6357,7 @@ var $author$project$Main$update = F2(
 						A2($elm$parser$Parser$run, $elm$parser$Parser$int, lengthStr));
 					if (_v13.$ === 'Just') {
 						var value = _v13.a;
-						return value;
+						return A3($author$project$Main$clipValues, value, 2, 16);
 					} else {
 						return 16;
 					}
@@ -6363,9 +6369,7 @@ var $author$project$Main$update = F2(
 					$author$project$Main$updateSequencerLength(length));
 			default:
 				var value = msg.a;
-				var offset = function (a) {
-					return (a > 5) ? 5 : ((_Utils_cmp(a, -5) < 0) ? (-5) : a);
-				}(model.offset + value);
+				var offset = A3($author$project$Main$clipValues, model.offset + value, -5, 5);
 				var offsetFloat = offset * 0.01;
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -6674,7 +6678,7 @@ var $author$project$Main$kickControls = function (kickParams) {
 				$author$project$Main$sliderWithValue,
 				'volume',
 				kickParams.volume,
-				'0',
+				'0.01',
 				'1',
 				'0.001',
 				function (a) {
