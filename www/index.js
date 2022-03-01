@@ -7,8 +7,8 @@ let interval = null;
 var app = Elm.Main.init({ node: document.querySelector("main") });
 
 app.ports.playKick.subscribe(function (params) {
-  let { freq, pitch, wave, decay, attack, volume } = params;
-  sound.play(freq, pitch, wave, decay, attack, volume);
+  let { freq, pitch, wave, decay, punch, volume } = params;
+  sound.play(freq, pitch, wave, decay, punch, volume);
 });
 app.ports.playSequence.subscribe(function () {
   sound.start();
@@ -26,11 +26,14 @@ app.ports.stopSequence.subscribe(function () {
   }
 });
 app.ports.updateKick.subscribe(function (params) {
-  let { freq, pitch, wave, decay, attack, volume } = params;
-  sound.update(freq, pitch, wave, decay, attack, volume);
+  let { freq, pitch, wave, decay, punch, volume } = params;
+  sound.update(freq, pitch, wave, decay, punch, volume);
 });
 app.ports.updateSequence.subscribe(function (sequence) {
   sound.update_steps(sequence)
+});
+app.ports.updateSequencerLength.subscribe(function (sequencerLength) {
+  sound.update_sequencer_length(sequencerLength)
 });
 
 function getSteps() {

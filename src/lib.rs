@@ -150,7 +150,7 @@ fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), Js
     let gain = ctx.create_gain()?;
 
     let compressor = ctx.create_dynamics_compressor()?;
-    compressor.threshold().set_value(values.punch);
+    compressor.threshold().set_value(-30.0 * values.punch);
     compressor.knee().set_value(1.0);
     compressor.ratio().set_value(5.0);
     compressor.attack().set_value(0.1);
@@ -186,7 +186,7 @@ impl Audio {
             pitch: 10.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            punch: -30.0 * 0.5,
+            punch: 0.5,
             volume: 0.7,
         };
         let kick2 = Kick {
@@ -194,7 +194,7 @@ impl Audio {
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.3,
-            punch: -30.0 * 1.0,
+            punch: 1.0,
             volume: 0.7,
         };
         let kick3 = Kick {
@@ -202,7 +202,7 @@ impl Audio {
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            punch: -30.0 * 1.0,
+            punch: 1.0,
             volume: 0.7,
         };
         kick_sequencer.sequence = [
@@ -233,7 +233,7 @@ impl Audio {
             pitch,
             wave,
             decay,
-            punch: -30.0 * punch,
+            punch: punch,
             volume,
         };
         play_kick(&self.ctx, kick, self.ctx.current_time())?;
@@ -259,7 +259,7 @@ impl Audio {
             pitch,
             wave,
             decay,
-            punch: -30.0 * punch,
+            punch: punch,
             volume,
         };
         self.sequencer.default_trigger = kick;
@@ -289,7 +289,7 @@ impl Audio {
     #[wasm_bindgen]
     pub fn get_steps(&mut self) -> i8 {
         let time = self.ctx.current_time();
-        let mut step = get_step(self.sequencer.step_to_schedule);
+        let mut step = get_step(self.sequencer.step_to_schedule, self.sequencer.steps);
         for _ in 0..16 {
             match self.sequencer.trigger_times[step as usize] {
                 Some(trigger_time) => {
@@ -300,12 +300,18 @@ impl Audio {
                 }
                 _ => {}
             }
-            step = get_step(self.sequencer.step_to_schedule);
+            step = get_step(self.sequencer.step_to_schedule, self.sequencer.steps);
         }
         // let l = format!("yeyeyey{:?}", step);
         // console::log_1(&l.into());
         self.sequencer.step_playing
     }
+
+    #[wasm_bindgen]
+    pub fn update_sequencer_length(&mut self, length: i8) {
+        self.sequencer.steps = length;
+        self.sequencer.step_delta = (60.0 / 120 as f64) * (4.0 / length as f64);
+    } 
 
     #[wasm_bindgen]
     pub fn update_steps(&mut self, steps: JsValue) {
@@ -328,7 +334,7 @@ impl Audio {
                             pitch: *pitch,
                             wave: wave_string_to_osc(wave),
                             decay: *decay,
-                            punch: -30.0 * *punch,
+                            punch: *punch,
                             volume: *volume,
                         };
                         Some(KickTrigger::Trigger)
@@ -338,7 +344,7 @@ impl Audio {
                         pitch: *pitch,
                         wave: wave_string_to_osc(wave),
                         decay: *decay,
-                        punch: -30.0 * *punch,
+                        punch: *punch,
                         volume: *volume,
                     })),
                     &_ => None,
@@ -351,10 +357,10 @@ impl Audio {
     }
 }
 
-fn get_step(i: i8) -> i8 {
+fn get_step(i: i8, steps: i8) -> i8 {
     let mut step = i - 1;
     if step < 0 {
-        step = 15;
+        step = steps - 1;
     }
     step
 }

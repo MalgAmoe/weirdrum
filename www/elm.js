@@ -5328,6 +5328,7 @@ var $author$project$Main$initialModel = function (_v0) {
 			kick: {decay: 0.1, freq: 40, pitch: 10, punch: 0.5, volume: 0.5, wave: 'sine'},
 			kickEdit: $elm$core$Maybe$Nothing,
 			playing: false,
+			sequencerLength: 16,
 			stepNumber: 0,
 			steps: $author$project$Main$emptySequencer
 		},
@@ -5492,8 +5493,7 @@ var $elm$core$Array$get = F2(
 			A2($elm$core$Elm$JsArray$unsafeGet, $elm$core$Array$bitMask & index, tail)) : $elm$core$Maybe$Just(
 			A3($elm$core$Array$getHelp, startShift, index, tree)));
 	});
-var $elm$core$Basics$not = _Basics_not;
-var $elm$parser$Parser$ExpectingFloat = {$: 'ExpectingFloat'};
+var $elm$parser$Parser$ExpectingInt = {$: 'ExpectingInt'};
 var $elm$parser$Parser$Advanced$Parser = function (a) {
 	return {$: 'Parser', a: a};
 };
@@ -5671,6 +5671,22 @@ var $elm$parser$Parser$Advanced$number = function (c) {
 			}
 		});
 };
+var $elm$parser$Parser$Advanced$int = F2(
+	function (expecting, invalid) {
+		return $elm$parser$Parser$Advanced$number(
+			{
+				binary: $elm$core$Result$Err(invalid),
+				expecting: expecting,
+				_float: $elm$core$Result$Err(invalid),
+				hex: $elm$core$Result$Err(invalid),
+				_int: $elm$core$Result$Ok($elm$core$Basics$identity),
+				invalid: invalid,
+				octal: $elm$core$Result$Err(invalid)
+			});
+	});
+var $elm$parser$Parser$int = A2($elm$parser$Parser$Advanced$int, $elm$parser$Parser$ExpectingInt, $elm$parser$Parser$ExpectingInt);
+var $elm$core$Basics$not = _Basics_not;
+var $elm$parser$Parser$ExpectingFloat = {$: 'ExpectingFloat'};
 var $elm$parser$Parser$Advanced$float = F2(
 	function (expecting, invalid) {
 		return $elm$parser$Parser$Advanced$number(
@@ -5851,6 +5867,229 @@ var $author$project$Main$rotateSteps = function (steps) {
 	}();
 	return newSteps;
 };
+var $elm$core$Elm$JsArray$appendN = _JsArray_appendN;
+var $elm$core$Elm$JsArray$slice = _JsArray_slice;
+var $elm$core$Array$appendHelpBuilder = F2(
+	function (tail, builder) {
+		var tailLen = $elm$core$Elm$JsArray$length(tail);
+		var notAppended = ($elm$core$Array$branchFactor - $elm$core$Elm$JsArray$length(builder.tail)) - tailLen;
+		var appended = A3($elm$core$Elm$JsArray$appendN, $elm$core$Array$branchFactor, builder.tail, tail);
+		return (notAppended < 0) ? {
+			nodeList: A2(
+				$elm$core$List$cons,
+				$elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: A3($elm$core$Elm$JsArray$slice, notAppended, tailLen, tail)
+		} : ((!notAppended) ? {
+			nodeList: A2(
+				$elm$core$List$cons,
+				$elm$core$Array$Leaf(appended),
+				builder.nodeList),
+			nodeListSize: builder.nodeListSize + 1,
+			tail: $elm$core$Elm$JsArray$empty
+		} : {nodeList: builder.nodeList, nodeListSize: builder.nodeListSize, tail: appended});
+	});
+var $elm$core$List$drop = F2(
+	function (n, list) {
+		drop:
+		while (true) {
+			if (n <= 0) {
+				return list;
+			} else {
+				if (!list.b) {
+					return list;
+				} else {
+					var x = list.a;
+					var xs = list.b;
+					var $temp$n = n - 1,
+						$temp$list = xs;
+					n = $temp$n;
+					list = $temp$list;
+					continue drop;
+				}
+			}
+		}
+	});
+var $elm$core$Array$sliceLeft = F2(
+	function (from, array) {
+		var len = array.a;
+		var tree = array.c;
+		var tail = array.d;
+		if (!from) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				from,
+				$elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					len - from,
+					$elm$core$Array$shiftStep,
+					$elm$core$Elm$JsArray$empty,
+					A3(
+						$elm$core$Elm$JsArray$slice,
+						from - $elm$core$Array$tailIndex(len),
+						$elm$core$Elm$JsArray$length(tail),
+						tail));
+			} else {
+				var skipNodes = (from / $elm$core$Array$branchFactor) | 0;
+				var helper = F2(
+					function (node, acc) {
+						if (node.$ === 'SubTree') {
+							var subTree = node.a;
+							return A3($elm$core$Elm$JsArray$foldr, helper, acc, subTree);
+						} else {
+							var leaf = node.a;
+							return A2($elm$core$List$cons, leaf, acc);
+						}
+					});
+				var leafNodes = A3(
+					$elm$core$Elm$JsArray$foldr,
+					helper,
+					_List_fromArray(
+						[tail]),
+					tree);
+				var nodesToInsert = A2($elm$core$List$drop, skipNodes, leafNodes);
+				if (!nodesToInsert.b) {
+					return $elm$core$Array$empty;
+				} else {
+					var head = nodesToInsert.a;
+					var rest = nodesToInsert.b;
+					var firstSlice = from - (skipNodes * $elm$core$Array$branchFactor);
+					var initialBuilder = {
+						nodeList: _List_Nil,
+						nodeListSize: 0,
+						tail: A3(
+							$elm$core$Elm$JsArray$slice,
+							firstSlice,
+							$elm$core$Elm$JsArray$length(head),
+							head)
+					};
+					return A2(
+						$elm$core$Array$builderToArray,
+						true,
+						A3($elm$core$List$foldl, $elm$core$Array$appendHelpBuilder, initialBuilder, rest));
+				}
+			}
+		}
+	});
+var $elm$core$Array$fetchNewTail = F4(
+	function (shift, end, treeEnd, tree) {
+		fetchNewTail:
+		while (true) {
+			var pos = $elm$core$Array$bitMask & (treeEnd >>> shift);
+			var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, pos, tree);
+			if (_v0.$ === 'SubTree') {
+				var sub = _v0.a;
+				var $temp$shift = shift - $elm$core$Array$shiftStep,
+					$temp$end = end,
+					$temp$treeEnd = treeEnd,
+					$temp$tree = sub;
+				shift = $temp$shift;
+				end = $temp$end;
+				treeEnd = $temp$treeEnd;
+				tree = $temp$tree;
+				continue fetchNewTail;
+			} else {
+				var values = _v0.a;
+				return A3($elm$core$Elm$JsArray$slice, 0, $elm$core$Array$bitMask & end, values);
+			}
+		}
+	});
+var $elm$core$Array$hoistTree = F3(
+	function (oldShift, newShift, tree) {
+		hoistTree:
+		while (true) {
+			if ((_Utils_cmp(oldShift, newShift) < 1) || (!$elm$core$Elm$JsArray$length(tree))) {
+				return tree;
+			} else {
+				var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, 0, tree);
+				if (_v0.$ === 'SubTree') {
+					var sub = _v0.a;
+					var $temp$oldShift = oldShift - $elm$core$Array$shiftStep,
+						$temp$newShift = newShift,
+						$temp$tree = sub;
+					oldShift = $temp$oldShift;
+					newShift = $temp$newShift;
+					tree = $temp$tree;
+					continue hoistTree;
+				} else {
+					return tree;
+				}
+			}
+		}
+	});
+var $elm$core$Array$sliceTree = F3(
+	function (shift, endIdx, tree) {
+		var lastPos = $elm$core$Array$bitMask & (endIdx >>> shift);
+		var _v0 = A2($elm$core$Elm$JsArray$unsafeGet, lastPos, tree);
+		if (_v0.$ === 'SubTree') {
+			var sub = _v0.a;
+			var newSub = A3($elm$core$Array$sliceTree, shift - $elm$core$Array$shiftStep, endIdx, sub);
+			return (!$elm$core$Elm$JsArray$length(newSub)) ? A3($elm$core$Elm$JsArray$slice, 0, lastPos, tree) : A3(
+				$elm$core$Elm$JsArray$unsafeSet,
+				lastPos,
+				$elm$core$Array$SubTree(newSub),
+				A3($elm$core$Elm$JsArray$slice, 0, lastPos + 1, tree));
+		} else {
+			return A3($elm$core$Elm$JsArray$slice, 0, lastPos, tree);
+		}
+	});
+var $elm$core$Array$sliceRight = F2(
+	function (end, array) {
+		var len = array.a;
+		var startShift = array.b;
+		var tree = array.c;
+		var tail = array.d;
+		if (_Utils_eq(end, len)) {
+			return array;
+		} else {
+			if (_Utils_cmp(
+				end,
+				$elm$core$Array$tailIndex(len)) > -1) {
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					end,
+					startShift,
+					tree,
+					A3($elm$core$Elm$JsArray$slice, 0, $elm$core$Array$bitMask & end, tail));
+			} else {
+				var endIdx = $elm$core$Array$tailIndex(end);
+				var depth = $elm$core$Basics$floor(
+					A2(
+						$elm$core$Basics$logBase,
+						$elm$core$Array$branchFactor,
+						A2($elm$core$Basics$max, 1, endIdx - 1)));
+				var newShift = A2($elm$core$Basics$max, 5, depth * $elm$core$Array$shiftStep);
+				return A4(
+					$elm$core$Array$Array_elm_builtin,
+					end,
+					newShift,
+					A3(
+						$elm$core$Array$hoistTree,
+						startShift,
+						newShift,
+						A3($elm$core$Array$sliceTree, startShift, endIdx, tree)),
+					A4($elm$core$Array$fetchNewTail, startShift, end, endIdx, tree));
+			}
+		}
+	});
+var $elm$core$Array$translateIndex = F2(
+	function (index, _v0) {
+		var len = _v0.a;
+		var posIndex = (index < 0) ? (len + index) : index;
+		return (posIndex < 0) ? 0 : ((_Utils_cmp(posIndex, len) > 0) ? len : posIndex);
+	});
+var $elm$core$Array$slice = F3(
+	function (from, to, array) {
+		var correctTo = A2($elm$core$Array$translateIndex, to, array);
+		var correctFrom = A2($elm$core$Array$translateIndex, from, array);
+		return (_Utils_cmp(correctFrom, correctTo) > 0) ? $elm$core$Array$empty : A2(
+			$elm$core$Array$sliceLeft,
+			correctFrom,
+			A2($elm$core$Array$sliceRight, correctTo, array));
+	});
 var $author$project$Main$stopSequence = _Platform_outgoingPort(
 	'stopSequence',
 	function ($) {
@@ -5921,6 +6160,8 @@ var $author$project$Main$updateSequence = _Platform_outgoingPort(
 						$elm$json$Json$Encode$string($.wave))
 					]));
 		}));
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $author$project$Main$updateSequencerLength = _Platform_outgoingPort('updateSequencerLength', $elm$json$Json$Encode$int);
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6066,15 +6307,22 @@ var $author$project$Main$update = F2(
 							newSteps)));
 			case 'Move':
 				var value = msg.a;
-				var newSteps = function () {
-					if (value.$ === 'Left') {
-						return $author$project$Main$rotateSteps(model.steps);
-					} else {
-						return $elm$core$List$reverse(
-							$author$project$Main$rotateSteps(
-								$elm$core$List$reverse(model.steps)));
-					}
-				}();
+				var stepsArray = $elm$core$Array$fromList(model.steps);
+				var start = $elm$core$Array$toList(
+					A3($elm$core$Array$slice, 0, model.sequencerLength, stepsArray));
+				var end = $elm$core$Array$toList(
+					A3($elm$core$Array$slice, model.sequencerLength, 16, stepsArray));
+				var newSteps = _Utils_ap(
+					function () {
+						if (value.$ === 'Left') {
+							return $author$project$Main$rotateSteps(start);
+						} else {
+							return $elm$core$List$reverse(
+								$author$project$Main$rotateSteps(
+									$elm$core$List$reverse(start)));
+						}
+					}(),
+					end);
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
@@ -6086,7 +6334,7 @@ var $author$project$Main$update = F2(
 								return A2($author$project$Main$transformStep, model.kick, a);
 							},
 							newSteps)));
-			default:
+			case 'ToggleEdit':
 				var editing = !model.editing;
 				var kickEdit = editing ? $elm$core$Maybe$Just(model.kick) : $elm$core$Maybe$Nothing;
 				return _Utils_Tuple2(
@@ -6094,8 +6342,37 @@ var $author$project$Main$update = F2(
 						model,
 						{editing: editing, editingStep: $elm$core$Maybe$Nothing, kickEdit: kickEdit}),
 					$elm$core$Platform$Cmd$none);
+			default:
+				var lengthStr = msg.a;
+				var length = function () {
+					var _v13 = $elm$core$Result$toMaybe(
+						A2($elm$parser$Parser$run, $elm$parser$Parser$int, lengthStr));
+					if (_v13.$ === 'Just') {
+						var value = _v13.a;
+						return value;
+					} else {
+						return 16;
+					}
+				}();
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{sequencerLength: length}),
+					$author$project$Main$updateSequencerLength(length));
 		}
 	});
+var $author$project$Main$UpdateSequencerLength = function (a) {
+	return {$: 'UpdateSequencerLength', a: a};
+};
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
 var $elm$html$Html$div = _VirtualDom_node('div');
 var $author$project$Main$ToggleEdit = {$: 'ToggleEdit'};
 var $elm$html$Html$button = _VirtualDom_node('button');
@@ -6152,11 +6429,11 @@ var $author$project$Main$editStepButton = function (editing) {
 				$elm$html$Html$text('edit steps')
 			]));
 };
+var $elm$html$Html$input = _VirtualDom_node('input');
 var $author$project$Main$UpdateParams = function (a) {
 	return {$: 'UpdateParams', a: a};
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
-var $elm$html$Html$input = _VirtualDom_node('input');
 var $elm$html$Html$Attributes$stringProperty = F2(
 	function (key, string) {
 		return A2(
@@ -6480,7 +6757,7 @@ var $author$project$Main$sequencerControls = function (child) {
 				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
 				A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
 				A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
-				A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+				A2($elm$html$Html$Attributes$style, 'margin-bottom', '10px')
 			]),
 		child);
 };
@@ -6558,8 +6835,8 @@ var $author$project$Main$triggerStep = F4(
 					_Utils_ap(style, triggerStyle))),
 			_List_Nil);
 	});
-var $author$project$Main$sequencerSteps = F3(
-	function (steps, stepNumber, editingStep) {
+var $author$project$Main$sequencerSteps = F4(
+	function (steps, stepNumber, editingStep, sequencerLength) {
 		var style = _List_fromArray(
 			[
 				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
@@ -6568,7 +6845,7 @@ var $author$project$Main$sequencerSteps = F3(
 				A2($elm$html$Html$Attributes$style, 'width', '100%')
 			]);
 		var stepsArray = $elm$core$Array$fromList(steps);
-		var list = A2($elm$core$List$range, 0, 15);
+		var list = A2($elm$core$List$range, 0, (-1) + sequencerLength);
 		var elements = A2(
 			$elm$core$List$map,
 			function (n) {
@@ -6595,7 +6872,7 @@ var $author$project$Main$view = function (model) {
 				A2($elm$html$Html$Attributes$style, 'height', '100%'),
 				A2($elm$html$Html$Attributes$style, 'font-family', 'Helvetica, sans-serif'),
 				A2($elm$html$Html$Attributes$style, 'width', '50vw'),
-				A2($elm$html$Html$Attributes$style, 'min-width', '350px'),
+				A2($elm$html$Html$Attributes$style, 'min-width', '700px'),
 				A2($elm$html$Html$Attributes$style, 'margin', 'auto'),
 				A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
 				A2($elm$html$Html$Attributes$style, 'background-color', 'black')
@@ -6608,9 +6885,46 @@ var $author$project$Main$view = function (model) {
 				_List_fromArray(
 					[
 						$author$project$Main$moveStepsButtons,
-						$author$project$Main$editStepButton(model.editing)
+						$author$project$Main$editStepButton(model.editing),
+						A2(
+						$elm$html$Html$input,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'width', '150px'),
+								A2($elm$html$Html$Attributes$style, 'background-color', 'purple'),
+								$elm$html$Html$Attributes$disabled(model.playing),
+								A2(
+								$elm$html$Html$Attributes$style,
+								'opacity',
+								model.playing ? '0.5' : '1'),
+								A2($elm$html$Html$Attributes$style, 'margin', 'none'),
+								A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
+								$elm$html$Html$Attributes$type_('range'),
+								$elm$html$Html$Attributes$min('2'),
+								$elm$html$Html$Attributes$max('16'),
+								$elm$html$Html$Attributes$step('1'),
+								$elm$html$Html$Attributes$value(
+								$elm$core$String$fromInt(model.sequencerLength)),
+								$elm$html$Html$Events$onInput($author$project$Main$UpdateSequencerLength)
+							]),
+						_List_Nil),
+						A2(
+						$elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+								A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
+								A2($elm$html$Html$Attributes$style, 'align-items', 'flex-end'),
+								A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
+								A2($elm$html$Html$Attributes$style, 'margin-bottom', '1px')
+							]),
+						_List_fromArray(
+							[
+								$elm$html$Html$text(
+								$elm$core$String$fromInt(model.sequencerLength))
+							]))
 					])),
-				A3($author$project$Main$sequencerSteps, model.steps, model.stepNumber, model.editingStep)
+				A4($author$project$Main$sequencerSteps, model.steps, model.stepNumber, model.editingStep, model.sequencerLength)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

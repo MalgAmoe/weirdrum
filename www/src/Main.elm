@@ -3,7 +3,7 @@ port module Main exposing (main)
 import Array
 import Browser
 import Html exposing (Html, button, div, h1, input, span, text)
-import Html.Attributes as A
+import Html.Attributes as A exposing (disabled)
 import Html.Events exposing (onClick, onInput)
 import Parser exposing (..)
 
@@ -21,6 +21,9 @@ port updateKick : KickParams -> Cmd msg
 
 
 port updateSequence : List KickParamsOut -> Cmd msg
+
+
+port updateSequencerLength : Int -> Cmd msg
 
 
 port receiveStepNumber : (Int -> msg) -> Sub msg
@@ -76,6 +79,7 @@ type alias Model =
     , steps : List Step
     , editing : Bool
     , editingStep : Maybe Int
+    , sequencerLength : Int
     }
 
 
@@ -95,6 +99,7 @@ initialModel _ =
       , steps = emptySequencer
       , editing = False
       , editingStep = Nothing
+      , sequencerLength = 16
       }
     , Cmd.none
     )
@@ -188,6 +193,7 @@ type Msg
     | Move StepMove
     | ToggleEdit
     | UpdateParams KickParamsStrings
+    | UpdateSequencerLength String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -312,13 +318,24 @@ update msg model =
 
         Move value ->
             let
+                stepsArray =
+                    Array.fromList model.steps
+
+                start =
+                    Array.toList <| Array.slice 0 model.sequencerLength stepsArray
+
+                end =
+                    Array.toList <| Array.slice model.sequencerLength 16 stepsArray
+
                 newSteps =
-                    case value of
+                    (case value of
                         Left ->
-                            rotateSteps model.steps
+                            rotateSteps start
 
                         Right ->
-                            List.reverse <| rotateSteps <| List.reverse model.steps
+                            List.reverse <| rotateSteps (List.reverse start)
+                    )
+                        ++ end
             in
             ( { model | steps = newSteps, editingStep = Nothing }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
@@ -335,6 +352,22 @@ update msg model =
                         Nothing
             in
             ( { model | editing = editing, kickEdit = kickEdit, editingStep = Nothing }, Cmd.none )
+
+        UpdateSequencerLength lengthStr ->
+            let
+                length =
+                    case
+                        lengthStr
+                            |> Parser.run Parser.int
+                            |> Result.toMaybe
+                    of
+                        Just value ->
+                            value
+
+                        Nothing ->
+                            16
+            in
+            ( { model | sequencerLength = length }, updateSequencerLength length )
 
 
 view : Model -> Html Msg
@@ -353,7 +386,7 @@ view model =
         , A.style "height" "100%"
         , A.style "font-family" "Helvetica, sans-serif"
         , A.style "width" "50vw"
-        , A.style "min-width" "350px"
+        , A.style "min-width" "700px"
         , A.style "margin" "auto"
         , A.style "color" "yellow"
         , A.style "background-color" "black"
@@ -363,8 +396,38 @@ view model =
         , sequencerControls
             [ moveStepsButtons
             , editStepButton model.editing
+            , input
+                [ A.style "width" "150px"
+                , A.style "background-color" "purple"
+                , disabled model.playing
+                , A.style "opacity"
+                    (if model.playing then
+                        "0.5"
+
+                     else
+                        "1"
+                    )
+                , A.style "margin" "none"
+                , A.style "margin-left" "5px"
+                , A.type_ "range"
+                , A.min "2"
+                , A.max "16"
+                , A.step "1"
+                , A.value (String.fromInt model.sequencerLength)
+                , onInput UpdateSequencerLength
+                ]
+                []
+            , div
+                [ A.style "display" "flex"
+                , A.style "justify-content" "flex-start"
+                , A.style "align-items" "flex-end"
+                , A.style "margin-left" "5px"
+                , A.style "margin-bottom" "1px"
+                ]
+                [ text <| String.fromInt model.sequencerLength
+                ]
             ]
-        , sequencerSteps model.steps model.stepNumber model.editingStep
+        , sequencerSteps model.steps model.stepNumber model.editingStep model.sequencerLength
         ]
 
 
@@ -391,7 +454,6 @@ kickControls kickParams =
         , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateParams { s | decay = a })
         , sliderWithValue "volume" kickParams.volume "0" "1" "0.001" (\a -> UpdateParams { s | volume = a })
         ]
-
 
 
 sliderWithValue : String -> Float -> String -> String -> String -> (String -> msg) -> Html msg
@@ -432,7 +494,7 @@ sequencerControls child =
         [ A.style "display" "flex"
         , A.style "flex-direction" "row"
         , A.style "justify-content" "flex-start"
-        , A.style "margin-bottom" "5px"
+        , A.style "margin-bottom" "10px"
         ]
         child
 
@@ -596,11 +658,11 @@ triggerStep steps n stepPlaying editingStep =
     div (onClick (Steps n) :: basicStyle ++ style ++ triggerStyle) []
 
 
-sequencerSteps : List Step -> Int -> Maybe Int -> Html Msg
-sequencerSteps steps stepNumber editingStep =
+sequencerSteps : List Step -> Int -> Maybe Int -> Int -> Html Msg
+sequencerSteps steps stepNumber editingStep sequencerLength =
     let
         list =
-            List.range 0 15
+            List.range 0 (-1 + sequencerLength)
 
         stepsArray =
             Array.fromList steps
