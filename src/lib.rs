@@ -108,7 +108,7 @@ struct Kick {
     pitch: f32,
     wave: web_sys::OscillatorType,
     decay: f32,
-    attack: f32,
+    punch: f32,
     volume: f32,
 }
 
@@ -119,7 +119,7 @@ impl Default for Kick {
             pitch: 1.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            attack: -30.0 * 0.0,
+            punch: -30.0 * 0.0,
             volume: 0.7,
         }
     }
@@ -131,7 +131,7 @@ pub struct KickValues {
     pitch: f32,
     wave: String,
     decay: f32,
-    attack: f32,
+    punch: f32,
     volume: f32,
     step_type: String,
 }
@@ -150,7 +150,7 @@ fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), Js
     let gain = ctx.create_gain()?;
 
     let compressor = ctx.create_dynamics_compressor()?;
-    compressor.threshold().set_value(values.attack);
+    compressor.threshold().set_value(values.punch);
     compressor.knee().set_value(1.0);
     compressor.ratio().set_value(5.0);
     compressor.attack().set_value(0.1);
@@ -186,7 +186,7 @@ impl Audio {
             pitch: 10.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            attack: -30.0 * 0.5,
+            punch: -30.0 * 0.5,
             volume: 0.7,
         };
         let kick2 = Kick {
@@ -194,7 +194,7 @@ impl Audio {
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.3,
-            attack: -30.0 * 1.0,
+            punch: -30.0 * 1.0,
             volume: 0.7,
         };
         let kick3 = Kick {
@@ -202,7 +202,7 @@ impl Audio {
             pitch: 8.0,
             wave: web_sys::OscillatorType::Sine,
             decay: 0.1,
-            attack: -30.0 * 1.0,
+            punch: -30.0 * 1.0,
             volume: 0.7,
         };
         kick_sequencer.sequence = [
@@ -224,7 +224,7 @@ impl Audio {
         pitch: f32,
         wave_str: &str,
         decay: f32,
-        attack: f32,
+        punch: f32,
         volume: f32,
     ) -> Result<(), JsValue> {
         let wave = wave_string_to_osc(wave_str);
@@ -233,7 +233,7 @@ impl Audio {
             pitch,
             wave,
             decay,
-            attack: -30.0 * attack,
+            punch: -30.0 * punch,
             volume,
         };
         play_kick(&self.ctx, kick, self.ctx.current_time())?;
@@ -250,7 +250,7 @@ impl Audio {
         pitch: f32,
         wave_str: &str,
         decay: f32,
-        attack: f32,
+        punch: f32,
         volume: f32,
     ) -> Result<(), JsValue> {
         let wave = wave_string_to_osc(wave_str);
@@ -259,7 +259,7 @@ impl Audio {
             pitch,
             wave,
             decay,
-            attack: -30.0 * attack,
+            punch: -30.0 * punch,
             volume,
         };
         self.sequencer.default_trigger = kick;
@@ -318,7 +318,7 @@ impl Audio {
                     pitch,
                     wave,
                     decay,
-                    attack,
+                    punch,
                     volume,
                     step_type,
                 } => match step_type.as_str() {
@@ -328,7 +328,7 @@ impl Audio {
                             pitch: *pitch,
                             wave: wave_string_to_osc(wave),
                             decay: *decay,
-                            attack: -30.0 * *attack,
+                            punch: -30.0 * *punch,
                             volume: *volume,
                         };
                         Some(KickTrigger::Trigger)
@@ -338,7 +338,7 @@ impl Audio {
                         pitch: *pitch,
                         wave: wave_string_to_osc(wave),
                         decay: *decay,
-                        attack: -30.0 * *attack,
+                        punch: -30.0 * *punch,
                         volume: *volume,
                     })),
                     &_ => None,

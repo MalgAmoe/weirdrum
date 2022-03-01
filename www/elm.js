@@ -5325,12 +5325,11 @@ var $author$project$Main$initialModel = function (_v0) {
 		{
 			editing: false,
 			editingStep: $elm$core$Maybe$Nothing,
-			kick: {attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 0.5, wave: 'sine'},
+			kick: {decay: 0.1, freq: 40, pitch: 10, punch: 0.5, volume: 0.5, wave: 'sine'},
 			kickEdit: $elm$core$Maybe$Nothing,
 			playing: false,
 			stepNumber: 0,
-			steps: $author$project$Main$emptySequencer,
-			value: ''
+			steps: $author$project$Main$emptySequencer
 		},
 		$elm$core$Platform$Cmd$none);
 };
@@ -5437,12 +5436,12 @@ var $author$project$Main$transformStep = F2(
 	function (kickParams, step) {
 		switch (step.$) {
 			case 'Trigger':
-				return {attack: kickParams.attack, decay: kickParams.decay, freq: kickParams.freq, pitch: kickParams.pitch, step_type: 'trigger', volume: kickParams.volume, wave: kickParams.wave};
+				return {decay: kickParams.decay, freq: kickParams.freq, pitch: kickParams.pitch, punch: kickParams.punch, step_type: 'trigger', volume: kickParams.volume, wave: kickParams.wave};
 			case 'LockTrigger':
 				var params = step.a;
-				return {attack: params.attack, decay: params.decay, freq: params.freq, pitch: params.pitch, step_type: 'lock_trigger', volume: params.volume, wave: params.wave};
+				return {decay: params.decay, freq: params.freq, pitch: params.pitch, punch: params.punch, step_type: 'lock_trigger', volume: params.volume, wave: params.wave};
 			default:
-				return {attack: 0, decay: 0, freq: 0, pitch: 0, step_type: 'empty', volume: 0, wave: ''};
+				return {decay: 0, freq: 0, pitch: 0, punch: 0, step_type: 'empty', volume: 0, wave: ''};
 		}
 	});
 var $author$project$Main$compileSteps = F4(
@@ -5779,9 +5778,6 @@ var $author$project$Main$playKick = _Platform_outgoingPort(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'attack',
-					$elm$json$Json$Encode$float($.attack)),
-					_Utils_Tuple2(
 					'decay',
 					$elm$json$Json$Encode$float($.decay)),
 					_Utils_Tuple2(
@@ -5790,6 +5786,9 @@ var $author$project$Main$playKick = _Platform_outgoingPort(
 					_Utils_Tuple2(
 					'pitch',
 					$elm$json$Json$Encode$float($.pitch)),
+					_Utils_Tuple2(
+					'punch',
+					$elm$json$Json$Encode$float($.punch)),
 					_Utils_Tuple2(
 					'volume',
 					$elm$json$Json$Encode$float($.volume)),
@@ -5864,9 +5863,6 @@ var $author$project$Main$updateKick = _Platform_outgoingPort(
 			_List_fromArray(
 				[
 					_Utils_Tuple2(
-					'attack',
-					$elm$json$Json$Encode$float($.attack)),
-					_Utils_Tuple2(
 					'decay',
 					$elm$json$Json$Encode$float($.decay)),
 					_Utils_Tuple2(
@@ -5875,6 +5871,9 @@ var $author$project$Main$updateKick = _Platform_outgoingPort(
 					_Utils_Tuple2(
 					'pitch',
 					$elm$json$Json$Encode$float($.pitch)),
+					_Utils_Tuple2(
+					'punch',
+					$elm$json$Json$Encode$float($.punch)),
 					_Utils_Tuple2(
 					'volume',
 					$elm$json$Json$Encode$float($.volume)),
@@ -5900,9 +5899,6 @@ var $author$project$Main$updateSequence = _Platform_outgoingPort(
 				_List_fromArray(
 					[
 						_Utils_Tuple2(
-						'attack',
-						$elm$json$Json$Encode$float($.attack)),
-						_Utils_Tuple2(
 						'decay',
 						$elm$json$Json$Encode$float($.decay)),
 						_Utils_Tuple2(
@@ -5911,6 +5907,9 @@ var $author$project$Main$updateSequence = _Platform_outgoingPort(
 						_Utils_Tuple2(
 						'pitch',
 						$elm$json$Json$Encode$float($.pitch)),
+						_Utils_Tuple2(
+						'punch',
+						$elm$json$Json$Encode$float($.punch)),
 						_Utils_Tuple2(
 						'step_type',
 						$elm$json$Json$Encode$string($.step_type)),
@@ -5929,7 +5928,7 @@ var $author$project$Main$update = F2(
 				return _Utils_Tuple2(
 					model,
 					$author$project$Main$playKick(
-						{attack: 0.5, decay: 0.1, freq: 40, pitch: 10, volume: 1, wave: 'sine'}));
+						{decay: 0.1, freq: 40, pitch: 10, punch: 0.5, volume: 1, wave: 'sine'}));
 			case 'PlaySequence':
 				return _Utils_Tuple2(
 					_Utils_update(
@@ -5942,195 +5941,86 @@ var $author$project$Main$update = F2(
 						model,
 						{playing: false}),
 					$author$project$Main$stopSequence(_Utils_Tuple0));
-			case 'Freq':
-				var value = msg.a;
-				var kick = model.kick;
-				var floatValue = $author$project$Main$parseString(value);
+			case 'UpdateParams':
+				var params = msg.a;
+				var volume = function () {
+					var _v8 = $author$project$Main$parseString(params.volume);
+					if (_v8.$ === 'Just') {
+						var value = _v8.a;
+						return value;
+					} else {
+						return model.kick.volume;
+					}
+				}();
+				var punch = function () {
+					var _v7 = $author$project$Main$parseString(params.punch);
+					if (_v7.$ === 'Just') {
+						var value = _v7.a;
+						return value;
+					} else {
+						return model.kick.punch;
+					}
+				}();
+				var pitch = function () {
+					var _v6 = $author$project$Main$parseString(params.pitch);
+					if (_v6.$ === 'Just') {
+						var value = _v6.a;
+						return value;
+					} else {
+						return model.kick.pitch;
+					}
+				}();
+				var freq = function () {
+					var _v5 = $author$project$Main$parseString(params.freq);
+					if (_v5.$ === 'Just') {
+						var value = _v5.a;
+						return value;
+					} else {
+						return model.kick.freq;
+					}
+				}();
+				var decay = function () {
+					var _v4 = $author$project$Main$parseString(params.decay);
+					if (_v4.$ === 'Just') {
+						var value = _v4.a;
+						return value;
+					} else {
+						return model.kick.decay;
+					}
+				}();
+				var newKick = {decay: decay, freq: freq, pitch: pitch, punch: punch, volume: volume, wave: params.wave};
 				var _v1 = model.kickEdit;
 				if (_v1.$ === 'Just') {
-					var kickEdit = _v1.a;
-					if (floatValue.$ === 'Just') {
-						var _float = floatValue.a;
-						var _v3 = model.editingStep;
-						if (_v3.$ === 'Just') {
-							var stepNumber = _v3.a;
-							var newKick = _Utils_update(
-								kickEdit,
-								{freq: _float});
-							var _v4 = A4($author$project$Main$compileSteps, model.steps, model.kick, newKick, stepNumber);
-							var steps = _v4.a;
-							var compiledSteps = _v4.b;
-							return _Utils_Tuple2(
-								_Utils_update(
-									model,
-									{
-										kickEdit: $elm$core$Maybe$Just(newKick),
-										steps: steps,
-										value: value
-									}),
-								$author$project$Main$updateSequence(compiledSteps));
-						} else {
-							var newKick = _Utils_update(
-								kickEdit,
-								{freq: _float});
-							return _Utils_Tuple2(
-								_Utils_update(
-									model,
-									{
-										kickEdit: $elm$core$Maybe$Just(newKick)
-									}),
-								$elm$core$Platform$Cmd$none);
-						}
-					} else {
-						return _Utils_Tuple2(
-							_Utils_update(
-								model,
-								{value: value}),
-							$elm$core$Platform$Cmd$none);
-					}
-				} else {
-					if (floatValue.$ === 'Just') {
-						var _float = floatValue.a;
+					var _v2 = model.editingStep;
+					if (_v2.$ === 'Just') {
+						var stepNumber = _v2.a;
+						var _v3 = A4($author$project$Main$compileSteps, model.steps, model.kick, newKick, stepNumber);
+						var steps = _v3.a;
+						var compiledSteps = _v3.b;
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
 								{
-									kick: _Utils_update(
-										kick,
-										{freq: _float}),
-									value: value
+									kickEdit: $elm$core$Maybe$Just(newKick),
+									steps: steps
 								}),
-							$author$project$Main$updateKick(
-								_Utils_update(
-									kick,
-									{freq: _float})));
+							$author$project$Main$updateSequence(compiledSteps));
 					} else {
 						return _Utils_Tuple2(
 							_Utils_update(
 								model,
-								{value: value}),
+								{
+									kickEdit: $elm$core$Maybe$Just(newKick)
+								}),
 							$elm$core$Platform$Cmd$none);
 					}
-				}
-			case 'Pitch':
-				var value = msg.a;
-				var kick = model.kick;
-				var floatValue = $author$project$Main$parseString(value);
-				if (floatValue.$ === 'Just') {
-					var _float = floatValue.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								kick: _Utils_update(
-									kick,
-									{pitch: _float}),
-								value: value
-							}),
-						$author$project$Main$updateKick(
-							_Utils_update(
-								kick,
-								{pitch: _float})));
 				} else {
 					return _Utils_Tuple2(
 						_Utils_update(
 							model,
-							{value: value}),
-						$elm$core$Platform$Cmd$none);
+							{kick: newKick}),
+						$author$project$Main$updateKick(newKick));
 				}
-			case 'Decay':
-				var value = msg.a;
-				var kick = model.kick;
-				var floatValue = $author$project$Main$parseString(value);
-				if (floatValue.$ === 'Just') {
-					var _float = floatValue.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								kick: _Utils_update(
-									kick,
-									{decay: _float}),
-								value: value
-							}),
-						$author$project$Main$updateKick(
-							_Utils_update(
-								kick,
-								{decay: _float})));
-				} else {
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{value: value}),
-						$elm$core$Platform$Cmd$none);
-				}
-			case 'Attack':
-				var value = msg.a;
-				var kick = model.kick;
-				var floatValue = $author$project$Main$parseString(value);
-				if (floatValue.$ === 'Just') {
-					var _float = floatValue.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								kick: _Utils_update(
-									kick,
-									{attack: _float}),
-								value: value
-							}),
-						$author$project$Main$updateKick(
-							_Utils_update(
-								kick,
-								{attack: _float})));
-				} else {
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{value: value}),
-						$elm$core$Platform$Cmd$none);
-				}
-			case 'Volume':
-				var value = msg.a;
-				var kick = model.kick;
-				var floatValue = $author$project$Main$parseString(value);
-				if (floatValue.$ === 'Just') {
-					var _float = floatValue.a;
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{
-								kick: _Utils_update(
-									kick,
-									{volume: _float}),
-								value: value
-							}),
-						$author$project$Main$updateKick(
-							_Utils_update(
-								kick,
-								{volume: _float})));
-				} else {
-					return _Utils_Tuple2(
-						_Utils_update(
-							model,
-							{value: value}),
-						$elm$core$Platform$Cmd$none);
-				}
-			case 'Wave':
-				var value = msg.a;
-				var kick = model.kick;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							kick: _Utils_update(
-								kick,
-								{wave: value})
-						}),
-					$author$project$Main$updateKick(
-						_Utils_update(
-							kick,
-							{wave: value})));
 			case 'StepNumber':
 				var step = msg.a;
 				return _Utils_Tuple2(
@@ -6146,9 +6036,9 @@ var $author$project$Main$update = F2(
 					if (step.$ === 'Just') {
 						var el = step.a;
 						if (el.$ === 'EmptyStep') {
-							var _v12 = model.kickEdit;
-							if (_v12.$ === 'Just') {
-								var kickEdit = _v12.a;
+							var _v11 = model.kickEdit;
+							if (_v11.$ === 'Just') {
+								var kickEdit = _v11.a;
 								return $author$project$Main$LockTrigger(kickEdit);
 							} else {
 								return $author$project$Main$Trigger;
@@ -6262,20 +6152,8 @@ var $author$project$Main$editStepButton = function (editing) {
 				$elm$html$Html$text('edit steps')
 			]));
 };
-var $author$project$Main$Attack = function (a) {
-	return {$: 'Attack', a: a};
-};
-var $author$project$Main$Decay = function (a) {
-	return {$: 'Decay', a: a};
-};
-var $author$project$Main$Freq = function (a) {
-	return {$: 'Freq', a: a};
-};
-var $author$project$Main$Pitch = function (a) {
-	return {$: 'Pitch', a: a};
-};
-var $author$project$Main$Volume = function (a) {
-	return {$: 'Volume', a: a};
+var $author$project$Main$UpdateParams = function (a) {
+	return {$: 'UpdateParams', a: a};
 };
 var $elm$core$String$fromFloat = _String_fromNumber;
 var $elm$html$Html$input = _VirtualDom_node('input');
@@ -6389,43 +6267,49 @@ var $author$project$Main$sliderWithValue = F6(
 					_List_Nil)
 				]));
 	});
-var $author$project$Main$Wave = function (a) {
-	return {$: 'Wave', a: a};
-};
-var $author$project$Main$waveButton = function (isSine) {
-	var buttonStyles = _List_fromArray(
-		[
-			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
-			A2($elm$html$Html$Attributes$style, 'background', 'black'),
-			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
-			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
-		]);
-	return isSine ? A2(
-		$elm$html$Html$button,
-		A2(
-			$elm$core$List$cons,
-			$elm$html$Html$Events$onClick(
-				$author$project$Main$Wave('triangle')),
-			buttonStyles),
-		_List_fromArray(
+var $author$project$Main$waveButton = F2(
+	function (isSine, msg) {
+		var buttonStyles = _List_fromArray(
 			[
-				$elm$html$Html$text('sine')
-			])) : A2(
-		$elm$html$Html$button,
-		A2(
-			$elm$core$List$cons,
-			$elm$html$Html$Events$onClick(
-				$author$project$Main$Wave('sine')),
-			buttonStyles),
-		_List_fromArray(
-			[
-				$elm$html$Html$text('triangle')
-			]));
-};
+				A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+				A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+				A2($elm$html$Html$Attributes$style, 'background', 'black'),
+				A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+				A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+				A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+				A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+			]);
+		return isSine ? A2(
+			$elm$html$Html$button,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Events$onClick(
+					msg('triangle')),
+				buttonStyles),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('sine')
+				])) : A2(
+			$elm$html$Html$button,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Events$onClick(
+					msg('sine')),
+				buttonStyles),
+			_List_fromArray(
+				[
+					$elm$html$Html$text('triangle')
+				]));
+	});
 var $author$project$Main$kickControls = function (kickParams) {
+	var s = {
+		decay: $elm$core$String$fromFloat(kickParams.decay),
+		freq: $elm$core$String$fromFloat(kickParams.freq),
+		pitch: $elm$core$String$fromFloat(kickParams.pitch),
+		punch: $elm$core$String$fromFloat(kickParams.punch),
+		volume: $elm$core$String$fromFloat(kickParams.volume),
+		wave: kickParams.wave
+	};
 	return A2(
 		$elm$html$Html$div,
 		_List_fromArray(
@@ -6435,12 +6319,80 @@ var $author$project$Main$kickControls = function (kickParams) {
 			]),
 		_List_fromArray(
 			[
-				$author$project$Main$waveButton(kickParams.wave === 'sine'),
-				A6($author$project$Main$sliderWithValue, 'freq', kickParams.freq, '30', '90', '0.1', $author$project$Main$Freq),
-				A6($author$project$Main$sliderWithValue, 'pitch', kickParams.pitch, '0', '30', '0.01', $author$project$Main$Pitch),
-				A6($author$project$Main$sliderWithValue, 'attack', kickParams.attack, '0', '2', '0.001', $author$project$Main$Attack),
-				A6($author$project$Main$sliderWithValue, 'decay', kickParams.decay, '0.01', '0.3', '0.001', $author$project$Main$Decay),
-				A6($author$project$Main$sliderWithValue, 'volume', kickParams.volume, '0', '1', '0.001', $author$project$Main$Volume)
+				A2(
+				$author$project$Main$waveButton,
+				kickParams.wave === 'sine',
+				function (a) {
+					return $author$project$Main$UpdateParams(
+						_Utils_update(
+							s,
+							{wave: a}));
+				}),
+				A6(
+				$author$project$Main$sliderWithValue,
+				'freq',
+				kickParams.freq,
+				'30',
+				'90',
+				'0.1',
+				function (a) {
+					return $author$project$Main$UpdateParams(
+						_Utils_update(
+							s,
+							{freq: a}));
+				}),
+				A6(
+				$author$project$Main$sliderWithValue,
+				'pitch',
+				kickParams.pitch,
+				'0',
+				'30',
+				'0.01',
+				function (a) {
+					return $author$project$Main$UpdateParams(
+						_Utils_update(
+							s,
+							{pitch: a}));
+				}),
+				A6(
+				$author$project$Main$sliderWithValue,
+				'punch',
+				kickParams.punch,
+				'0',
+				'2',
+				'0.001',
+				function (a) {
+					return $author$project$Main$UpdateParams(
+						_Utils_update(
+							s,
+							{punch: a}));
+				}),
+				A6(
+				$author$project$Main$sliderWithValue,
+				'decay',
+				kickParams.decay,
+				'0.01',
+				'0.3',
+				'0.001',
+				function (a) {
+					return $author$project$Main$UpdateParams(
+						_Utils_update(
+							s,
+							{decay: a}));
+				}),
+				A6(
+				$author$project$Main$sliderWithValue,
+				'volume',
+				kickParams.volume,
+				'0',
+				'1',
+				'0.001',
+				function (a) {
+					return $author$project$Main$UpdateParams(
+						_Utils_update(
+							s,
+							{volume: a}));
+				})
 			]));
 };
 var $author$project$Main$Left = {$: 'Left'};
@@ -6651,7 +6603,6 @@ var $author$project$Main$view = function (model) {
 		_List_fromArray(
 			[
 				$author$project$Main$playingButton(model.playing),
-				$elm$html$Html$text(model.value),
 				$author$project$Main$kickControls(controls),
 				$author$project$Main$sequencerControls(
 				_List_fromArray(

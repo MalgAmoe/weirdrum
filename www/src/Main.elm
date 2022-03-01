@@ -42,7 +42,7 @@ type alias KickParams =
     , pitch : Float
     , wave : String
     , decay : Float
-    , attack : Float
+    , punch : Float
     , volume : Float
     }
 
@@ -52,15 +52,24 @@ type alias KickParamsOut =
     , pitch : Float
     , wave : String
     , decay : Float
-    , attack : Float
+    , punch : Float
     , volume : Float
     , step_type : String
     }
 
 
+type alias KickParamsStrings =
+    { freq : String
+    , pitch : String
+    , wave : String
+    , decay : String
+    , punch : String
+    , volume : String
+    }
+
+
 type alias Model =
     { playing : Bool
-    , value : String
     , kick : KickParams
     , kickEdit : Maybe KickParams
     , stepNumber : Int
@@ -73,13 +82,12 @@ type alias Model =
 initialModel : () -> ( Model, Cmd Msg )
 initialModel _ =
     ( { playing = False
-      , value = ""
       , kick =
             { freq = 40
             , pitch = 10
             , wave = "sine"
             , decay = 0.1
-            , attack = 0.5
+            , punch = 0.5
             , volume = 0.5
             }
       , kickEdit = Nothing
@@ -105,7 +113,7 @@ transformStep kickParams step =
             , pitch = kickParams.pitch
             , wave = kickParams.wave
             , decay = kickParams.decay
-            , attack = kickParams.attack
+            , punch = kickParams.punch
             , volume = kickParams.volume
             , step_type = "trigger"
             }
@@ -115,7 +123,7 @@ transformStep kickParams step =
             , pitch = params.pitch
             , wave = params.wave
             , decay = params.decay
-            , attack = params.attack
+            , punch = params.punch
             , volume = params.volume
             , step_type = "lock_trigger"
             }
@@ -125,7 +133,7 @@ transformStep kickParams step =
             , pitch = 0
             , wave = ""
             , decay = 0
-            , attack = 0
+            , punch = 0
             , volume = 0
             , step_type = "empty"
             }
@@ -156,7 +164,7 @@ rotateSteps steps =
     newSteps
 
 
-compileSteps : List Step -> KickParams -> KickParams -> Int -> (List Step , List KickParamsOut)
+compileSteps : List Step -> KickParams -> KickParams -> Int -> ( List Step, List KickParamsOut )
 compileSteps steps kick kickEdit stepNumber =
     let
         stepArray =
@@ -168,23 +176,18 @@ compileSteps steps kick kickEdit stepNumber =
         newSteps =
             Array.toList <| Array.set stepNumber newStep stepArray
     in
-    (newSteps, List.map (\a -> transformStep kick a) newSteps)
+    ( newSteps, List.map (\a -> transformStep kick a) newSteps )
 
 
 type Msg
     = PlayKick
     | PlaySequence
     | StopSequence
-    | Freq String
-    | Pitch String
-    | Decay String
-    | Attack String
-    | Volume String
-    | Wave String
     | StepNumber Int
     | Steps Int
     | Move StepMove
     | ToggleEdit
+    | UpdateParams KickParamsStrings
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -192,7 +195,7 @@ update msg model =
     case msg of
         PlayKick ->
             ( model
-            , playKick { freq = 40, pitch = 10, wave = "sine", decay = 0.1, attack = 0.5, volume = 1 }
+            , playKick { freq = 40, pitch = 10, wave = "sine", decay = 0.1, punch = 0.5, volume = 1 }
             )
 
         PlaySequence ->
@@ -205,113 +208,66 @@ update msg model =
             , stopSequence ()
             )
 
-        Freq value ->
+        UpdateParams params ->
             let
-                floatValue =
-                    parseString value
+                freq =
+                    case parseString params.freq of
+                        Just value ->
+                            value
 
-                kick =
-                    model.kick
+                        Nothing ->
+                            model.kick.freq
+
+                pitch =
+                    case parseString params.pitch of
+                        Just value ->
+                            value
+
+                        Nothing ->
+                            model.kick.pitch
+
+                punch =
+                    case parseString params.punch of
+                        Just value ->
+                            value
+
+                        Nothing ->
+                            model.kick.punch
+
+                decay =
+                    case parseString params.decay of
+                        Just value ->
+                            value
+
+                        Nothing ->
+                            model.kick.decay
+
+                volume =
+                    case parseString params.volume of
+                        Just value ->
+                            value
+
+                        Nothing ->
+                            model.kick.volume
+
+                newKick =
+                    { wave = params.wave, freq = freq, pitch = pitch, punch = punch, decay = decay, volume = volume }
             in
             case model.kickEdit of
-                Just kickEdit ->
-                    case floatValue of
-                        Just float ->
-                            case model.editingStep of
-                                Just stepNumber ->
-                                    let
-                                        newKick =
-                                            { kickEdit | freq = float }
-
-                                        (steps, compiledSteps) =
-                                            compileSteps model.steps model.kick newKick stepNumber
-                                    in
-                                    ( { model | value = value, kickEdit = Just newKick, steps = steps }, updateSequence compiledSteps )
-
-                                Nothing ->
-                                    let
-                                        newKick =
-                                            { kickEdit | freq = float }
-                                    in
-                                    ( { model | kickEdit = Just newKick }, Cmd.none )
+                Just _ ->
+                    case model.editingStep of
+                        Just stepNumber ->
+                            let
+                                ( steps, compiledSteps ) =
+                                    compileSteps model.steps model.kick newKick stepNumber
+                            in
+                            ( { model | kickEdit = Just newKick, steps = steps }, updateSequence compiledSteps )
 
                         Nothing ->
-                            ( { model | value = value }, Cmd.none )
+                            ( { model | kickEdit = Just newKick }, Cmd.none )
 
                 Nothing ->
-                    case floatValue of
-                        Just float ->
-                            ( { model | value = value, kick = { kick | freq = float } }, updateKick { kick | freq = float } )
-
-                        Nothing ->
-                            ( { model | value = value }, Cmd.none )
-
-        Pitch value ->
-            let
-                floatValue =
-                    parseString value
-
-                kick =
-                    model.kick
-            in
-            case floatValue of
-                Just float ->
-                    ( { model | value = value, kick = { kick | pitch = float } }, updateKick { kick | pitch = float } )
-
-                Nothing ->
-                    ( { model | value = value }, Cmd.none )
-
-        Decay value ->
-            let
-                floatValue =
-                    parseString value
-
-                kick =
-                    model.kick
-            in
-            case floatValue of
-                Just float ->
-                    ( { model | value = value, kick = { kick | decay = float } }, updateKick { kick | decay = float } )
-
-                Nothing ->
-                    ( { model | value = value }, Cmd.none )
-
-        Attack value ->
-            let
-                floatValue =
-                    parseString value
-
-                kick =
-                    model.kick
-            in
-            case floatValue of
-                Just float ->
-                    ( { model | value = value, kick = { kick | attack = float } }, updateKick { kick | attack = float } )
-
-                Nothing ->
-                    ( { model | value = value }, Cmd.none )
-
-        Volume value ->
-            let
-                floatValue =
-                    parseString value
-
-                kick =
-                    model.kick
-            in
-            case floatValue of
-                Just float ->
-                    ( { model | value = value, kick = { kick | volume = float } }, updateKick { kick | volume = float } )
-
-                Nothing ->
-                    ( { model | value = value }, Cmd.none )
-
-        Wave value ->
-            let
-                kick =
-                    model.kick
-            in
-            ( { model | kick = { kick | wave = value } }, updateKick { kick | wave = value } )
+                    ( { model | kick = newKick }, updateKick newKick )
 
         StepNumber step ->
             ( { model | stepNumber = step }, Cmd.none )
@@ -344,6 +300,7 @@ update msg model =
 
                 newSteps =
                     Array.toList <| Array.set value newStep stepArray
+
                 editingStep =
                     if model.editing then
                         Just value
@@ -402,7 +359,6 @@ view model =
         , A.style "background-color" "black"
         ]
         [ playingButton model.playing
-        , text model.value
         , kickControls controls
         , sequencerControls
             [ moveStepsButtons
@@ -414,17 +370,28 @@ view model =
 
 kickControls : KickParams -> Html Msg
 kickControls kickParams =
+    let
+        s =
+            { freq = String.fromFloat kickParams.freq
+            , pitch = String.fromFloat kickParams.pitch
+            , wave = kickParams.wave
+            , decay = String.fromFloat kickParams.decay
+            , punch = String.fromFloat kickParams.punch
+            , volume = String.fromFloat kickParams.volume
+            }
+    in
     div
         [ A.style "display" "flex"
         , A.style "flex-direction" "column"
         ]
-        [ waveButton (kickParams.wave == "sine")
-        , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" Freq
-        , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" Pitch
-        , sliderWithValue "attack" kickParams.attack "0" "2" "0.001" Attack
-        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" Decay
-        , sliderWithValue "volume" kickParams.volume "0" "1" "0.001" Volume
+        [ waveButton (kickParams.wave == "sine") (\a -> UpdateParams { s | wave = a })
+        , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" (\a -> UpdateParams { s | freq = a })
+        , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" (\a -> UpdateParams { s | pitch = a })
+        , sliderWithValue "punch" kickParams.punch "0" "2" "0.001" (\a -> UpdateParams { s | punch = a })
+        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateParams { s | decay = a })
+        , sliderWithValue "volume" kickParams.volume "0" "1" "0.001" (\a -> UpdateParams { s | volume = a })
         ]
+
 
 
 sliderWithValue : String -> Float -> String -> String -> String -> (String -> msg) -> Html msg
@@ -470,8 +437,8 @@ sequencerControls child =
         child
 
 
-waveButton : Bool -> Html Msg
-waveButton isSine =
+waveButton : Bool -> (String -> Msg) -> Html Msg
+waveButton isSine msg =
     let
         buttonStyles =
             [ A.style "padding" "4px 12px"
@@ -485,12 +452,12 @@ waveButton isSine =
     in
     if isSine then
         button
-            (onClick (Wave "triangle") :: buttonStyles)
+            (onClick (msg "triangle") :: buttonStyles)
             [ text "sine" ]
 
     else
         button
-            (onClick (Wave "sine") :: buttonStyles)
+            (onClick (msg "sine") :: buttonStyles)
             [ text "triangle" ]
 
 
