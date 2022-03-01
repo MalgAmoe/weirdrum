@@ -38,6 +38,7 @@ struct Sequencer {
     next_step_time: f64,
     step_delta: f64,
     default_trigger: Kick,
+    offset: f64,
 }
 
 impl Sequencer {
@@ -51,6 +52,7 @@ impl Sequencer {
             next_step_time: 0.0,
             step_delta: (60.0 / tempo as f64) * (4.0 / 16.0),
             default_trigger: Kick::default(),
+            offset: 0.0,
         }
     }
     fn schedule_sounds(
@@ -64,10 +66,10 @@ impl Sequencer {
             match self.sequence[self.step_to_schedule as usize] {
                 Some(kick_trigger) => match kick_trigger {
                     KickTrigger::LockTrigger(kick) => {
-                        play_kick(ctx, kick, self.next_step_time)?;
+                        play_kick(ctx, kick, self.next_step_time, self.offset)?;
                     }
                     KickTrigger::Trigger => {
-                        play_kick(ctx, self.default_trigger, self.next_step_time)?;
+                        play_kick(ctx, self.default_trigger, self.next_step_time, self.offset)?;
                     }
                 },
                 None => {}
@@ -143,8 +145,13 @@ fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
     }
 }
 
-fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), JsValue> {
-    let time = time_delta + 0.05;
+fn play_kick(
+    ctx: &AudioContext,
+    values: Kick,
+    time_delta: f64,
+    offset: f64,
+) -> Result<(), JsValue> {
+    let time = time_delta + offset + 0.05;
     let osc = ctx.create_oscillator()?;
     osc.set_type(values.wave);
     let gain = ctx.create_gain()?;
@@ -159,7 +166,6 @@ fn play_kick(ctx: &AudioContext, values: Kick, time_delta: f64) -> Result<(), Js
     osc.connect_with_audio_node(&gain)?;
     gain.connect_with_audio_node(&compressor)?;
     compressor.connect_with_audio_node(&ctx.destination())?;
-    // out.connect_with_audio_node(&ctx.destination())?;
 
     osc.frequency()
         .set_value_at_time(values.freq + values.freq * values.pitch, time)?;
@@ -181,30 +187,6 @@ impl Audio {
     pub fn new() -> Result<Audio, JsValue> {
         let ctx = web_sys::AudioContext::new()?;
         let mut kick_sequencer = Sequencer::new(120.0);
-        let kick = Kick {
-            freq: 40.0,
-            pitch: 10.0,
-            wave: web_sys::OscillatorType::Sine,
-            decay: 0.1,
-            punch: 0.5,
-            volume: 0.7,
-        };
-        let kick2 = Kick {
-            freq: 50.0,
-            pitch: 8.0,
-            wave: web_sys::OscillatorType::Sine,
-            decay: 0.3,
-            punch: 1.0,
-            volume: 0.7,
-        };
-        let kick3 = Kick {
-            freq: 60.0,
-            pitch: 8.0,
-            wave: web_sys::OscillatorType::Sine,
-            decay: 0.1,
-            punch: 1.0,
-            volume: 0.7,
-        };
         kick_sequencer.sequence = [
             None, None, None, None, None, None, None, None, None, None, None, None, None, None,
             None, None,
@@ -236,7 +218,7 @@ impl Audio {
             punch: punch,
             volume,
         };
-        play_kick(&self.ctx, kick, self.ctx.current_time())?;
+        play_kick(&self.ctx, kick, self.ctx.current_time(), 0.0)?;
         // let l = format!("{:?}", self.ctx.current_time());
         // console::log_1(&l.into());
         // self.sequencer.play(&self.ctx);
@@ -311,7 +293,12 @@ impl Audio {
     pub fn update_sequencer_length(&mut self, length: i8) {
         self.sequencer.steps = length;
         self.sequencer.step_delta = (60.0 / 120 as f64) * (4.0 / length as f64);
-    } 
+    }
+
+    #[wasm_bindgen]
+    pub fn update_offset(&mut self, offset: f64) {
+        self.sequencer.offset = offset
+    }
 
     #[wasm_bindgen]
     pub fn update_steps(&mut self, steps: JsValue) {
@@ -352,8 +339,6 @@ impl Audio {
             }
         }
         self.sequencer.sequence = steps;
-        // let l = format!("yeyeyey{:?}", elements);
-        // console::log_1(&l.into());
     }
 }
 

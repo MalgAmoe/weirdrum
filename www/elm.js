@@ -5327,6 +5327,7 @@ var $author$project$Main$initialModel = function (_v0) {
 			editingStep: $elm$core$Maybe$Nothing,
 			kick: {decay: 0.1, freq: 40, pitch: 10, punch: 0.5, volume: 0.5, wave: 'sine'},
 			kickEdit: $elm$core$Maybe$Nothing,
+			offset: 0,
 			playing: false,
 			sequencerLength: 16,
 			stepNumber: 0,
@@ -6121,6 +6122,7 @@ var $author$project$Main$updateKick = _Platform_outgoingPort(
 					$elm$json$Json$Encode$string($.wave))
 				]));
 	});
+var $author$project$Main$updateOffset = _Platform_outgoingPort('updateOffset', $elm$json$Json$Encode$float);
 var $elm$json$Json$Encode$list = F2(
 	function (func, entries) {
 		return _Json_wrap(
@@ -6342,7 +6344,7 @@ var $author$project$Main$update = F2(
 						model,
 						{editing: editing, editingStep: $elm$core$Maybe$Nothing, kickEdit: kickEdit}),
 					$elm$core$Platform$Cmd$none);
-			default:
+			case 'UpdateSequencerLength':
 				var lengthStr = msg.a;
 				var length = function () {
 					var _v13 = $elm$core$Result$toMaybe(
@@ -6359,6 +6361,17 @@ var $author$project$Main$update = F2(
 						model,
 						{sequencerLength: length}),
 					$author$project$Main$updateSequencerLength(length));
+			default:
+				var value = msg.a;
+				var offset = function (a) {
+					return (a > 5) ? 5 : ((_Utils_cmp(a, -5) < 0) ? (-5) : a);
+				}(model.offset + value);
+				var offsetFloat = offset * 0.01;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{offset: offset}),
+					$author$project$Main$updateOffset(offsetFloat));
 		}
 	});
 var $author$project$Main$UpdateSequencerLength = function (a) {
@@ -6716,6 +6729,63 @@ var $author$project$Main$moveStepsButtons = function () {
 					]))
 			]));
 }();
+var $author$project$Main$UpdateOffset = function (a) {
+	return {$: 'UpdateOffset', a: a};
+};
+var $author$project$Main$offsetButtons = function (offset) {
+	var buttonStyles = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'background', 'black'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
+		]);
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'margin-top', '10px')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$button,
+				A2(
+					$elm$core$List$cons,
+					$elm$html$Html$Events$onClick(
+						$author$project$Main$UpdateOffset(-1)),
+					buttonStyles),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('<')
+					])),
+				A2(
+				$elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
+						A2($elm$html$Html$Attributes$style, 'margin-right', '5px')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$elm$core$String$fromInt(offset) + ' ms')
+					])),
+				A2(
+				$elm$html$Html$button,
+				A2(
+					$elm$core$List$cons,
+					$elm$html$Html$Events$onClick(
+						$author$project$Main$UpdateOffset(1)),
+					buttonStyles),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('>')
+					]))
+			]));
+};
 var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
 var $author$project$Main$StopSequence = {$: 'StopSequence'};
 var $author$project$Main$playingButton = function (isPlaying) {
@@ -6915,8 +6985,7 @@ var $author$project$Main$view = function (model) {
 								A2($elm$html$Html$Attributes$style, 'display', 'flex'),
 								A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
 								A2($elm$html$Html$Attributes$style, 'align-items', 'flex-end'),
-								A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
-								A2($elm$html$Html$Attributes$style, 'margin-bottom', '1px')
+								A2($elm$html$Html$Attributes$style, 'margin-bottom', '2px')
 							]),
 						_List_fromArray(
 							[
@@ -6924,7 +6993,8 @@ var $author$project$Main$view = function (model) {
 								$elm$core$String$fromInt(model.sequencerLength))
 							]))
 					])),
-				A4($author$project$Main$sequencerSteps, model.steps, model.stepNumber, model.editingStep, model.sequencerLength)
+				A4($author$project$Main$sequencerSteps, model.steps, model.stepNumber, model.editingStep, model.sequencerLength),
+				$author$project$Main$offsetButtons(model.offset)
 			]));
 };
 var $author$project$Main$main = $elm$browser$Browser$element(

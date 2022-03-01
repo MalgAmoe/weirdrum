@@ -26,6 +26,9 @@ port updateSequence : List KickParamsOut -> Cmd msg
 port updateSequencerLength : Int -> Cmd msg
 
 
+port updateOffset : Float -> Cmd msg
+
+
 port receiveStepNumber : (Int -> msg) -> Sub msg
 
 
@@ -80,6 +83,7 @@ type alias Model =
     , editing : Bool
     , editingStep : Maybe Int
     , sequencerLength : Int
+    , offset : Int
     }
 
 
@@ -100,6 +104,7 @@ initialModel _ =
       , editing = False
       , editingStep = Nothing
       , sequencerLength = 16
+      , offset = 0
       }
     , Cmd.none
     )
@@ -194,6 +199,7 @@ type Msg
     | ToggleEdit
     | UpdateParams KickParamsStrings
     | UpdateSequencerLength String
+    | UpdateOffset Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -369,6 +375,26 @@ update msg model =
             in
             ( { model | sequencerLength = length }, updateSequencerLength length )
 
+        UpdateOffset value ->
+            let
+                offset =
+                    model.offset
+                        + value
+                        |> (\a ->
+                                if a > 5 then
+                                    5
+
+                                else if a < -5 then
+                                    -5
+
+                                else
+                                    a
+                           )
+
+                offsetFloat = (toFloat offset) * 0.01
+            in
+            ( { model | offset = offset }, updateOffset offsetFloat )
+
 
 view : Model -> Html Msg
 view model =
@@ -421,13 +447,15 @@ view model =
                 [ A.style "display" "flex"
                 , A.style "justify-content" "flex-start"
                 , A.style "align-items" "flex-end"
-                , A.style "margin-left" "5px"
-                , A.style "margin-bottom" "1px"
+
+                -- , A.style "margin-left" "5px"
+                , A.style "margin-bottom" "2px"
                 ]
-                [ text <| String.fromInt model.sequencerLength
+                [ text (String.fromInt model.sequencerLength)
                 ]
             ]
         , sequencerSteps model.steps model.stepNumber model.editingStep model.sequencerLength
+        , offsetButtons model.offset
         ]
 
 
@@ -562,6 +590,31 @@ moveStepsButtons =
     div []
         [ button (onClick (Move Left) :: buttonStyles) [ text "<" ]
         , button (onClick (Move Right) :: buttonStyles) [ text ">" ]
+        ]
+
+
+offsetButtons : Int -> Html Msg
+offsetButtons offset =
+    let
+        buttonStyles =
+            [ A.style "padding" "4px 12px"
+            , A.style "color" "yellow"
+            , A.style "background" "black"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid purple"
+            ]
+    in
+    div
+        [ A.style "margin-top" "10px"
+        ]
+        [ button (onClick (UpdateOffset -1) :: buttonStyles) [ text "<" ]
+        , span
+            [ A.style "margin-left" "5px"
+            , A.style "margin-right" "5px"
+            ]
+            [ text (String.fromInt offset ++ " ms") ]
+        , button (onClick (UpdateOffset 1) :: buttonStyles) [ text ">" ]
         ]
 
 

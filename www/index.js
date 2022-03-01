@@ -35,6 +35,9 @@ app.ports.updateSequence.subscribe(function (sequence) {
 app.ports.updateSequencerLength.subscribe(function (sequencerLength) {
   sound.update_sequencer_length(sequencerLength)
 });
+app.ports.updateOffset.subscribe(function (offset) {
+  sound.update_offset(offset)
+});
 
 function getSteps() {
   const step = sound.get_steps()
