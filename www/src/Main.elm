@@ -324,7 +324,7 @@ update msg model =
                 step =
                     Array.get value stepArray
 
-                (newStep, kickEdit, editingStep) =
+                ( newStep, kickEdit, editingStep ) =
                     case step of
                         Just el ->
                             if model.editing then
@@ -333,8 +333,9 @@ update msg model =
                                         case model.kickEdit of
                                             Just kickEditValue ->
                                                 ( LockTrigger kickEditValue, model.kickEdit, Just value )
+
                                             Nothing ->
-                                                ( Trigger, Nothing , Nothing)
+                                                ( Trigger, Nothing, Nothing )
 
                                     Trigger ->
                                         ( LockTrigger model.kick, Just model.kick, Just value )
@@ -344,10 +345,13 @@ update msg model =
                                             Just stepNumber ->
                                                 if stepNumber == value then
                                                     ( EmptyStep, Just kickEditValue, Nothing )
+
                                                 else
                                                     ( LockTrigger kickEditValue, Just kickEditValue, Just value )
+
                                             Nothing ->
                                                 ( LockTrigger kickEditValue, Just kickEditValue, Just value )
+
                             else
                                 case el of
                                     EmptyStep ->
@@ -361,11 +365,9 @@ update msg model =
 
                         _ ->
                             ( EmptyStep, Nothing, Nothing )
-                
+
                 newSteps =
                     Array.toList <| Array.set value newStep stepArray
-
-                
             in
             ( { model | steps = newSteps, editingStep = editingStep, kickEdit = kickEdit }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
@@ -513,6 +515,9 @@ view model =
         ]
         [ div
             [ A.style "display" "flex"
+            , A.style "justify-content" "flex-start"
+            , A.style "align-items" "center"
+            , A.style "margin-bottom" "5px"
             ]
             [ playingButton model.playing
             , tempoControl model.tempo
@@ -543,10 +548,14 @@ view model =
                 ]
                 []
             , div
-                [ A.style "display" "flex"
-                , A.style "justify-content" "flex-start"
-                , A.style "align-items" "flex-end"
-                , A.style "margin-bottom" "2px"
+                [ A.style "text-align" "center"
+                , A.style "margin-left" "5px"
+                , A.style "padding" "4px 12px"
+                , A.style "border-radius" "28px"
+                , A.style "border" "2px solid purple"
+                , A.style "font-size" "0.8em"
+                , A.style "text-align" "center"
+                , A.style "width" "30px"
                 ]
                 [ text (String.fromInt model.sequencerLength)
                 ]
@@ -568,7 +577,11 @@ tempoControl tempo =
             , A.style "border" "2px solid purple"
             ]
     in
-    div [ A.style "margin-left" "5px" ]
+    div
+        [ A.style "margin-left" "5px"
+        , A.style "display" "flex"
+        , A.style "align-items" "center"
+        ]
         [ button (onClick (FixTempo <| addValueToString tempo -1) :: buttonStyles) [ text "<" ]
         , input
             [ A.style "color" "yellow"
@@ -635,6 +648,7 @@ sliderWithValue name value min max step msg =
             [ A.style "width" "100%"
             , A.style "background-color" "purple"
             , A.type_ "range"
+            , A.style "margin-top" "9px"
             , A.min min
             , A.max max
             , A.step step
@@ -651,6 +665,7 @@ sequencerControls child =
         [ A.style "display" "flex"
         , A.style "flex-direction" "row"
         , A.style "justify-content" "flex-start"
+        , A.style "align-items" "center"
         , A.style "margin-bottom" "10px"
         ]
         child
@@ -690,7 +705,6 @@ playingButton isPlaying =
             , A.style "border-radius" "28px"
             , A.style "font-size" "0.8em"
             , A.style "border" "2px solid purple"
-            , A.style "margin-bottom" "5px"
             ]
     in
     if isPlaying then

@@ -6657,6 +6657,7 @@ var $author$project$Main$sliderWithValue = F6(
 							A2($elm$html$Html$Attributes$style, 'width', '100%'),
 							A2($elm$html$Html$Attributes$style, 'background-color', 'purple'),
 							$elm$html$Html$Attributes$type_('range'),
+							A2($elm$html$Html$Attributes$style, 'margin-top', '9px'),
 							$elm$html$Html$Attributes$min(min),
 							$elm$html$Html$Attributes$max(max),
 							$elm$html$Html$Attributes$step(step),
@@ -6906,8 +6907,7 @@ var $author$project$Main$playingButton = function (isPlaying) {
 			A2($elm$html$Html$Attributes$style, 'background', 'black'),
 			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
 			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
-			A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
 		]);
 	return isPlaying ? A2(
 		$elm$html$Html$button,
@@ -6937,6 +6937,7 @@ var $author$project$Main$sequencerControls = function (child) {
 				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
 				A2($elm$html$Html$Attributes$style, 'flex-direction', 'row'),
 				A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
+				A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
 				A2($elm$html$Html$Attributes$style, 'margin-bottom', '10px')
 			]),
 		child);
@@ -7070,7 +7071,9 @@ var $author$project$Main$tempoControl = function (tempo) {
 		$elm$html$Html$div,
 		_List_fromArray(
 			[
-				A2($elm$html$Html$Attributes$style, 'margin-left', '5px')
+				A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
+				A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2($elm$html$Html$Attributes$style, 'align-items', 'center')
 			]),
 		_List_fromArray(
 			[
@@ -7147,7 +7150,10 @@ var $author$project$Main$view = function (model) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						A2($elm$html$Html$Attributes$style, 'display', 'flex')
+						A2($elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
+						A2($elm$html$Html$Attributes$style, 'align-items', 'center'),
+						A2($elm$html$Html$Attributes$style, 'margin-bottom', '5px')
 					]),
 				_List_fromArray(
 					[
@@ -7186,10 +7192,14 @@ var $author$project$Main$view = function (model) {
 						$elm$html$Html$div,
 						_List_fromArray(
 							[
-								A2($elm$html$Html$Attributes$style, 'display', 'flex'),
-								A2($elm$html$Html$Attributes$style, 'justify-content', 'flex-start'),
-								A2($elm$html$Html$Attributes$style, 'align-items', 'flex-end'),
-								A2($elm$html$Html$Attributes$style, 'margin-bottom', '2px')
+								A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+								A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
+								A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+								A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+								A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+								A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+								A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+								A2($elm$html$Html$Attributes$style, 'width', '30px')
 							]),
 						_List_fromArray(
 							[
