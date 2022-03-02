@@ -188,7 +188,7 @@ impl Audio {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Audio, JsValue> {
         let ctx = web_sys::AudioContext::new()?;
-        let mut kick_sequencer = Sequencer::new(120.0);
+        let mut kick_sequencer = Sequencer::new(90.0);
         kick_sequencer.sequence = [
             None, None, None, None, None, None, None, None, None, None, None, None, None, None,
             None, None,

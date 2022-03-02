@@ -6446,14 +6446,8 @@ var $author$project$Main$update = F2(
 					$author$project$Main$updateTempo(tempoFloat)) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none));
 		}
 	});
-var $author$project$Main$FixTempo = function (a) {
-	return {$: 'FixTempo', a: a};
-};
 var $author$project$Main$UpdateSequencerLength = function (a) {
 	return {$: 'UpdateSequencerLength', a: a};
-};
-var $author$project$Main$UpdateTempo = function (a) {
-	return {$: 'UpdateTempo', a: a};
 };
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
@@ -6864,12 +6858,6 @@ var $author$project$Main$offsetButtons = function (offset) {
 					]))
 			]));
 };
-var $elm$html$Html$Events$onBlur = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'blur',
-		$elm$json$Json$Decode$succeed(msg));
-};
 var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
 var $author$project$Main$StopSequence = {$: 'StopSequence'};
 var $author$project$Main$playingButton = function (isPlaying) {
@@ -7008,6 +6996,90 @@ var $author$project$Main$sequencerSteps = F4(
 			list);
 		return A2($elm$html$Html$div, style, elements);
 	});
+var $author$project$Main$FixTempo = function (a) {
+	return {$: 'FixTempo', a: a};
+};
+var $author$project$Main$UpdateTempo = function (a) {
+	return {$: 'UpdateTempo', a: a};
+};
+var $author$project$Main$addValueToString = F2(
+	function (string, value) {
+		var _v0 = $elm$core$String$toInt(string);
+		if (_v0.$ === 'Just') {
+			var stringInt = _v0.a;
+			return $elm$core$String$fromInt(stringInt + value);
+		} else {
+			return string;
+		}
+	});
+var $elm$html$Html$Events$onBlur = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'blur',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $author$project$Main$tempoControl = function (tempo) {
+	var buttonStyles = _List_fromArray(
+		[
+			A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+			A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+			A2($elm$html$Html$Attributes$style, 'background', 'black'),
+			A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+			A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+			A2($elm$html$Html$Attributes$style, 'border', '2px solid purple')
+		]);
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2($elm$html$Html$Attributes$style, 'margin-left', '5px')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$button,
+				A2(
+					$elm$core$List$cons,
+					$elm$html$Html$Events$onClick(
+						$author$project$Main$FixTempo(
+							A2($author$project$Main$addValueToString, tempo, -1))),
+					buttonStyles),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('<')
+					])),
+				A2(
+				$elm$html$Html$input,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+						A2($elm$html$Html$Attributes$style, 'background-color', 'black'),
+						A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+						A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+						A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+						A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+						A2($elm$html$Html$Attributes$style, 'width', '30px'),
+						A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+						$elm$html$Html$Attributes$value(tempo),
+						$elm$html$Html$Events$onInput($author$project$Main$UpdateTempo),
+						$elm$html$Html$Events$onBlur(
+						$author$project$Main$FixTempo(tempo))
+					]),
+				_List_Nil),
+				A2(
+				$elm$html$Html$button,
+				A2(
+					$elm$core$List$cons,
+					$elm$html$Html$Events$onClick(
+						$author$project$Main$FixTempo(
+							A2($author$project$Main$addValueToString, tempo, 1))),
+					buttonStyles),
+				_List_fromArray(
+					[
+						$elm$html$Html$text('>')
+					]))
+			]));
+};
 var $author$project$Main$view = function (model) {
 	var controls = function () {
 		var _v0 = model.kickEdit;
@@ -7033,26 +7105,17 @@ var $author$project$Main$view = function (model) {
 			]),
 		_List_fromArray(
 			[
-				$author$project$Main$playingButton(model.playing),
 				A2(
-				$elm$html$Html$input,
+				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
-						A2($elm$html$Html$Attributes$style, 'background-color', 'black'),
-						A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
-						A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
-						A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
-						A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
-						A2($elm$html$Html$Attributes$style, 'width', '30px'),
-						A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
-						A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
-						$elm$html$Html$Attributes$value(model.tempo),
-						$elm$html$Html$Events$onInput($author$project$Main$UpdateTempo),
-						$elm$html$Html$Events$onBlur(
-						$author$project$Main$FixTempo(model.tempo))
+						A2($elm$html$Html$Attributes$style, 'display', 'flex')
 					]),
-				_List_Nil),
+				_List_fromArray(
+					[
+						$author$project$Main$playingButton(model.playing),
+						$author$project$Main$tempoControl(model.tempo)
+					])),
 				$author$project$Main$kickControls(controls),
 				$author$project$Main$sequencerControls(
 				_List_fromArray(

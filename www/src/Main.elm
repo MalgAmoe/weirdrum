@@ -2,7 +2,7 @@ port module Main exposing (main)
 
 import Array
 import Browser
-import Html exposing (Html, button, div, h1, input, span, text)
+import Html exposing (Html, button, div, input, span, text)
 import Html.Attributes as A exposing (disabled)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Parser exposing (..)
@@ -27,6 +27,7 @@ port updateSequencerLength : Int -> Cmd msg
 
 
 port updateOffset : Float -> Cmd msg
+
 
 port updateTempo : Float -> Cmd msg
 
@@ -206,6 +207,16 @@ clipValues value min max =
                 else
                     a
            )
+
+
+addValueToString : String -> Int -> String
+addValueToString string value =
+    case String.toInt string of
+        Just stringInt ->
+            String.fromInt (stringInt + value)
+
+        Nothing ->
+            string
 
 
 type Msg
@@ -485,22 +496,12 @@ view model =
         , A.style "color" "yellow"
         , A.style "background-color" "black"
         ]
-        [ playingButton model.playing
-        , input
-            [ A.style "color" "yellow"
-            , A.style "background-color" "black"
-            , A.style "padding" "4px 12px"
-            , A.style "border-radius" "28px"
-            , A.style "font-size" "0.8em"
-            , A.style "border" "2px solid purple"
-            , A.style "width" "30px"
-            , A.style "margin-left" "5px"
-            , A.style "text-align" "center"
-            , A.value model.tempo
-            , onInput UpdateTempo
-            , onBlur (FixTempo model.tempo)
+        [ div
+            [ A.style "display" "flex"
             ]
-            []
+            [ playingButton model.playing
+            , tempoControl model.tempo
+            ]
         , kickControls controls
         , sequencerControls
             [ moveStepsButtons
@@ -537,6 +538,38 @@ view model =
             ]
         , sequencerSteps model.steps model.stepNumber model.editingStep model.sequencerLength
         , offsetButtons model.offset
+        ]
+
+
+tempoControl : String -> Html Msg
+tempoControl tempo =
+    let
+        buttonStyles =
+            [ A.style "padding" "4px 12px"
+            , A.style "color" "yellow"
+            , A.style "background" "black"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid purple"
+            ]
+    in
+    div [ A.style "margin-left" "5px" ]
+        [ button (onClick (FixTempo <| addValueToString tempo -1) :: buttonStyles) [ text "<" ]
+        , input
+            [ A.style "color" "yellow"
+            , A.style "background-color" "black"
+            , A.style "padding" "4px 12px"
+            , A.style "border-radius" "28px"
+            , A.style "border" "2px solid purple"
+            , A.style "font-size" "0.8em"
+            , A.style "width" "30px"
+            , A.style "text-align" "center"
+            , A.value tempo
+            , onInput UpdateTempo
+            , onBlur (FixTempo tempo)
+            ]
+            []
+        , button (onClick (FixTempo <| addValueToString tempo 1) :: buttonStyles) [ text ">" ]
         ]
 
 
