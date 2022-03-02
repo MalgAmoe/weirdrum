@@ -324,35 +324,50 @@ update msg model =
                 step =
                     Array.get value stepArray
 
-                newStep =
+                (newStep, kickEdit, editingStep) =
                     case step of
                         Just el ->
-                            case el of
-                                EmptyStep ->
-                                    case model.kickEdit of
-                                        Just kickEdit ->
-                                            LockTrigger kickEdit
+                            if model.editing then
+                                case el of
+                                    EmptyStep ->
+                                        case model.kickEdit of
+                                            Just kickEditValue ->
+                                                ( LockTrigger kickEditValue, model.kickEdit, Just value )
+                                            Nothing ->
+                                                ( Trigger, Nothing , Nothing)
 
-                                        Nothing ->
-                                            Trigger
+                                    Trigger ->
+                                        ( LockTrigger model.kick, Just model.kick, Just value )
 
-                                _ ->
-                                    EmptyStep
+                                    LockTrigger kickEditValue ->
+                                        case model.editingStep of
+                                            Just stepNumber ->
+                                                if stepNumber == value then
+                                                    ( EmptyStep, Just kickEditValue, Nothing )
+                                                else
+                                                    ( LockTrigger kickEditValue, Just kickEditValue, Just value )
+                                            Nothing ->
+                                                ( LockTrigger kickEditValue, Just kickEditValue, Just value )
+                            else
+                                case el of
+                                    EmptyStep ->
+                                        ( Trigger, Nothing, Nothing )
+
+                                    Trigger ->
+                                        ( EmptyStep, Nothing, Nothing )
+
+                                    LockTrigger _ ->
+                                        ( EmptyStep, Nothing, Nothing )
 
                         _ ->
-                            EmptyStep
-
+                            ( EmptyStep, Nothing, Nothing )
+                
                 newSteps =
                     Array.toList <| Array.set value newStep stepArray
 
-                editingStep =
-                    if model.editing then
-                        Just value
-
-                    else
-                        Nothing
+                
             in
-            ( { model | steps = newSteps, editingStep = editingStep }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+            ( { model | steps = newSteps, editingStep = editingStep, kickEdit = kickEdit }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
 
         Move value ->
             let

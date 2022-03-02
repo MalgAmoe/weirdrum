@@ -6283,31 +6283,69 @@ var $author$project$Main$update = F2(
 				var value = msg.a;
 				var stepArray = $elm$core$Array$fromList(model.steps);
 				var step = A2($elm$core$Array$get, value, stepArray);
-				var newStep = function () {
+				var _v9 = function () {
 					if (step.$ === 'Just') {
 						var el = step.a;
-						if (el.$ === 'EmptyStep') {
-							var _v11 = model.kickEdit;
-							if (_v11.$ === 'Just') {
-								var kickEdit = _v11.a;
-								return $author$project$Main$LockTrigger(kickEdit);
-							} else {
-								return $author$project$Main$Trigger;
+						if (model.editing) {
+							switch (el.$) {
+								case 'EmptyStep':
+									var _v12 = model.kickEdit;
+									if (_v12.$ === 'Just') {
+										var kickEditValue = _v12.a;
+										return _Utils_Tuple3(
+											$author$project$Main$LockTrigger(kickEditValue),
+											model.kickEdit,
+											$elm$core$Maybe$Just(value));
+									} else {
+										return _Utils_Tuple3($author$project$Main$Trigger, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
+									}
+								case 'Trigger':
+									return _Utils_Tuple3(
+										$author$project$Main$LockTrigger(model.kick),
+										$elm$core$Maybe$Just(model.kick),
+										$elm$core$Maybe$Just(value));
+								default:
+									var kickEditValue = el.a;
+									var _v13 = model.editingStep;
+									if (_v13.$ === 'Just') {
+										var stepNumber = _v13.a;
+										return _Utils_eq(stepNumber, value) ? _Utils_Tuple3(
+											$author$project$Main$EmptyStep,
+											$elm$core$Maybe$Just(kickEditValue),
+											$elm$core$Maybe$Nothing) : _Utils_Tuple3(
+											$author$project$Main$LockTrigger(kickEditValue),
+											$elm$core$Maybe$Just(kickEditValue),
+											$elm$core$Maybe$Just(value));
+									} else {
+										return _Utils_Tuple3(
+											$author$project$Main$LockTrigger(kickEditValue),
+											$elm$core$Maybe$Just(kickEditValue),
+											$elm$core$Maybe$Just(value));
+									}
 							}
 						} else {
-							return $author$project$Main$EmptyStep;
+							switch (el.$) {
+								case 'EmptyStep':
+									return _Utils_Tuple3($author$project$Main$Trigger, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
+								case 'Trigger':
+									return _Utils_Tuple3($author$project$Main$EmptyStep, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
+								default:
+									return _Utils_Tuple3($author$project$Main$EmptyStep, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
+							}
 						}
 					} else {
-						return $author$project$Main$EmptyStep;
+						return _Utils_Tuple3($author$project$Main$EmptyStep, $elm$core$Maybe$Nothing, $elm$core$Maybe$Nothing);
 					}
 				}();
+				var newStep = _v9.a;
+				var kickEdit = _v9.b;
+				var editingStep = _v9.c;
 				var newSteps = $elm$core$Array$toList(
 					A3($elm$core$Array$set, value, newStep, stepArray));
-				var editingStep = model.editing ? $elm$core$Maybe$Just(value) : $elm$core$Maybe$Nothing;
 				return _Utils_Tuple2(
 					_Utils_update(
 						model,
-						{editingStep: editingStep, steps: newSteps}),
+						{editingStep: editingStep, kickEdit: kickEdit, steps: newSteps}),
 					$author$project$Main$updateSequence(
 						A2(
 							$elm$core$List$map,
@@ -6355,10 +6393,10 @@ var $author$project$Main$update = F2(
 			case 'UpdateSequencerLength':
 				var lengthStr = msg.a;
 				var length = function () {
-					var _v13 = $elm$core$Result$toMaybe(
+					var _v16 = $elm$core$Result$toMaybe(
 						A2($elm$parser$Parser$run, $elm$parser$Parser$int, lengthStr));
-					if (_v13.$ === 'Just') {
-						var value = _v13.a;
+					if (_v16.$ === 'Just') {
+						var value = _v16.a;
 						return A3($author$project$Main$clipValues, value, 2, 16);
 					} else {
 						return 16;
@@ -6381,16 +6419,16 @@ var $author$project$Main$update = F2(
 			case 'UpdateTempo':
 				var tempoStr = msg.a;
 				var isInt = function () {
-					var _v15 = $elm$core$String$toInt(tempoStr);
-					if (_v15.$ === 'Just') {
+					var _v18 = $elm$core$String$toInt(tempoStr);
+					if (_v18.$ === 'Just') {
 						return true;
 					} else {
 						return false;
 					}
 				}();
 				var isFloat = function () {
-					var _v14 = $elm$core$String$toFloat(tempoStr);
-					if (_v14.$ === 'Just') {
+					var _v17 = $elm$core$String$toFloat(tempoStr);
+					if (_v17.$ === 'Just') {
 						return true;
 					} else {
 						return false;
@@ -6404,10 +6442,10 @@ var $author$project$Main$update = F2(
 					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
 			default:
 				var tempoStr = msg.a;
-				var _v16 = function () {
-					var _v17 = $elm$core$String$toInt(tempoStr);
-					if (_v17.$ === 'Just') {
-						var value = _v17.a;
+				var _v19 = function () {
+					var _v20 = $elm$core$String$toInt(tempoStr);
+					if (_v20.$ === 'Just') {
+						var value = _v20.a;
 						return _Utils_Tuple2(
 							true,
 							A3($author$project$Main$clipValues, value, 30, 270));
@@ -6415,12 +6453,12 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(false, 90);
 					}
 				}();
-				var isInt = _v16.a;
-				var tempoInt = _v16.b;
-				var _v18 = function () {
-					var _v19 = $elm$core$String$toFloat(tempoStr);
-					if (_v19.$ === 'Just') {
-						var value = _v19.a;
+				var isInt = _v19.a;
+				var tempoInt = _v19.b;
+				var _v21 = function () {
+					var _v22 = $elm$core$String$toFloat(tempoStr);
+					if (_v22.$ === 'Just') {
+						var value = _v22.a;
 						return _Utils_Tuple2(
 							true,
 							A3($author$project$Main$clipValues, value, 30, 270));
@@ -6428,8 +6466,8 @@ var $author$project$Main$update = F2(
 						return _Utils_Tuple2(false, 90);
 					}
 				}();
-				var isFloat = _v18.a;
-				var tempoFloat = _v18.b;
+				var isFloat = _v21.a;
+				var tempoFloat = _v21.b;
 				return isInt ? _Utils_Tuple2(
 					_Utils_update(
 						model,
