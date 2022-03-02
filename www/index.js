@@ -15,7 +15,7 @@ app.ports.playSequence.subscribe(function () {
   if (!interval) {
     interval = setInterval(() => {
       sound.schedule();
-    }, 40);
+    }, 20);
   }
 });
 app.ports.stopSequence.subscribe(function () {
@@ -37,6 +37,9 @@ app.ports.updateSequencerLength.subscribe(function (sequencerLength) {
 });
 app.ports.updateOffset.subscribe(function (offset) {
   sound.update_offset(offset)
+});
+app.ports.updateTempo.subscribe(function (tempo) {
+  sound.update_tempo(tempo)
 });
 
 function getSteps() {

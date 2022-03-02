@@ -4,7 +4,7 @@ import Array
 import Browser
 import Html exposing (Html, button, div, h1, input, span, text)
 import Html.Attributes as A exposing (disabled)
-import Html.Events exposing (onClick, onInput)
+import Html.Events exposing (onBlur, onClick, onInput)
 import Parser exposing (..)
 
 
@@ -27,6 +27,8 @@ port updateSequencerLength : Int -> Cmd msg
 
 
 port updateOffset : Float -> Cmd msg
+
+port updateTempo : Float -> Cmd msg
 
 
 port receiveStepNumber : (Int -> msg) -> Sub msg
@@ -84,6 +86,7 @@ type alias Model =
     , editingStep : Maybe Int
     , sequencerLength : Int
     , offset : Int
+    , tempo : String
     }
 
 
@@ -105,6 +108,7 @@ initialModel _ =
       , editingStep = Nothing
       , sequencerLength = 16
       , offset = 0
+      , tempo = "90"
       }
     , Cmd.none
     )
@@ -215,6 +219,8 @@ type Msg
     | UpdateParams KickParamsStrings
     | UpdateSequencerLength String
     | UpdateOffset Int
+    | UpdateTempo String
+    | FixTempo String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -403,6 +409,60 @@ update msg model =
             in
             ( { model | offset = offset }, updateOffset offsetFloat )
 
+        UpdateTempo tempoStr ->
+            let
+                isInt =
+                    case String.toInt tempoStr of
+                        Just _ ->
+                            True
+
+                        Nothing ->
+                            False
+
+                isFloat =
+                    case String.toFloat tempoStr of
+                        Just _ ->
+                            True
+
+                        Nothing ->
+                            False
+
+                isEmpty =
+                    String.isEmpty tempoStr
+            in
+            if isInt || isFloat || isEmpty then
+                ( { model | tempo = tempoStr }, Cmd.none )
+
+            else
+                ( model, Cmd.none )
+
+        FixTempo tempoStr ->
+            let
+                ( isInt, tempoInt ) =
+                    case String.toInt tempoStr of
+                        Just value ->
+                            ( True, clipValues value 30 270 )
+
+                        Nothing ->
+                            ( False, 90 )
+
+                ( isFloat, tempoFloat ) =
+                    case String.toFloat tempoStr of
+                        Just value ->
+                            ( True, clipValues value 30 270 )
+
+                        Nothing ->
+                            ( False, 90 )
+            in
+            if isInt then
+                ( { model | tempo = String.fromInt tempoInt }, updateTempo <| toFloat tempoInt )
+
+            else if isFloat then
+                ( { model | tempo = String.fromInt <| floor tempoFloat }, updateTempo tempoFloat )
+
+            else
+                ( model, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
@@ -426,6 +486,21 @@ view model =
         , A.style "background-color" "black"
         ]
         [ playingButton model.playing
+        , input
+            [ A.style "color" "yellow"
+            , A.style "background-color" "black"
+            , A.style "padding" "4px 12px"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "border" "2px solid purple"
+            , A.style "width" "30px"
+            , A.style "margin-left" "5px"
+            , A.style "text-align" "center"
+            , A.value model.tempo
+            , onInput UpdateTempo
+            , onBlur (FixTempo model.tempo)
+            ]
+            []
         , kickControls controls
         , sequencerControls
             [ moveStepsButtons
@@ -455,8 +530,6 @@ view model =
                 [ A.style "display" "flex"
                 , A.style "justify-content" "flex-start"
                 , A.style "align-items" "flex-end"
-
-                -- , A.style "margin-left" "5px"
                 , A.style "margin-bottom" "2px"
                 ]
                 [ text (String.fromInt model.sequencerLength)

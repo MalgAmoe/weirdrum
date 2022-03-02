@@ -36,6 +36,7 @@ struct Sequencer {
     step_to_schedule: i8,
     step_playing: i8,
     next_step_time: f64,
+    tempo: f32,
     step_delta: f64,
     default_trigger: Kick,
     offset: f64,
@@ -50,6 +51,7 @@ impl Sequencer {
             step_to_schedule: 0,
             step_playing: 0,
             next_step_time: 0.0,
+            tempo: tempo,
             step_delta: (60.0 / tempo as f64) * (4.0 / 16.0),
             default_trigger: Kick::default(),
             offset: 0.0,
@@ -194,7 +196,7 @@ impl Audio {
 
         Ok(Audio {
             ctx,
-            schedule_interval: 0.1,
+            schedule_interval: 0.04,
             sequencer: kick_sequencer,
         })
     }
@@ -292,12 +294,18 @@ impl Audio {
     #[wasm_bindgen]
     pub fn update_sequencer_length(&mut self, length: i8) {
         self.sequencer.steps = length;
-        self.sequencer.step_delta = (60.0 / 120 as f64) * (4.0 / length as f64);
+        self.sequencer.step_delta = (60.0 / self.sequencer.tempo as f64) * (4.0 / length as f64);
     }
 
     #[wasm_bindgen]
     pub fn update_offset(&mut self, offset: f64) {
-        self.sequencer.offset = offset
+        self.sequencer.offset = offset;
+    }
+
+    #[wasm_bindgen]
+    pub fn update_tempo(&mut self, tempo: f32) {
+        self.sequencer.tempo = tempo;
+        self.sequencer.step_delta = (60.0 / tempo as f64) * (4.0 / self.sequencer.steps as f64);
     }
 
     #[wasm_bindgen]

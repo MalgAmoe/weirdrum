@@ -5331,7 +5331,8 @@ var $author$project$Main$initialModel = function (_v0) {
 			playing: false,
 			sequencerLength: 16,
 			stepNumber: 0,
-			steps: $author$project$Main$emptySequencer
+			steps: $author$project$Main$emptySequencer,
+			tempo: '90'
 		},
 		$elm$core$Platform$Cmd$none);
 };
@@ -6170,6 +6171,7 @@ var $author$project$Main$updateSequence = _Platform_outgoingPort(
 		}));
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Main$updateSequencerLength = _Platform_outgoingPort('updateSequencerLength', $elm$json$Json$Encode$int);
+var $author$project$Main$updateTempo = _Platform_outgoingPort('updateTempo', $elm$json$Json$Encode$float);
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
@@ -6367,7 +6369,7 @@ var $author$project$Main$update = F2(
 						model,
 						{sequencerLength: length}),
 					$author$project$Main$updateSequencerLength(length));
-			default:
+			case 'UpdateOffset':
 				var value = msg.a;
 				var offset = A3($author$project$Main$clipValues, model.offset + value, -5, 5);
 				var offsetFloat = offset * 0.01;
@@ -6376,10 +6378,82 @@ var $author$project$Main$update = F2(
 						model,
 						{offset: offset}),
 					$author$project$Main$updateOffset(offsetFloat));
+			case 'UpdateTempo':
+				var tempoStr = msg.a;
+				var isInt = function () {
+					var _v15 = $elm$core$String$toInt(tempoStr);
+					if (_v15.$ === 'Just') {
+						return true;
+					} else {
+						return false;
+					}
+				}();
+				var isFloat = function () {
+					var _v14 = $elm$core$String$toFloat(tempoStr);
+					if (_v14.$ === 'Just') {
+						return true;
+					} else {
+						return false;
+					}
+				}();
+				var isEmpty = $elm$core$String$isEmpty(tempoStr);
+				return (isInt || (isFloat || isEmpty)) ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{tempo: tempoStr}),
+					$elm$core$Platform$Cmd$none) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
+			default:
+				var tempoStr = msg.a;
+				var _v16 = function () {
+					var _v17 = $elm$core$String$toInt(tempoStr);
+					if (_v17.$ === 'Just') {
+						var value = _v17.a;
+						return _Utils_Tuple2(
+							true,
+							A3($author$project$Main$clipValues, value, 30, 270));
+					} else {
+						return _Utils_Tuple2(false, 90);
+					}
+				}();
+				var isInt = _v16.a;
+				var tempoInt = _v16.b;
+				var _v18 = function () {
+					var _v19 = $elm$core$String$toFloat(tempoStr);
+					if (_v19.$ === 'Just') {
+						var value = _v19.a;
+						return _Utils_Tuple2(
+							true,
+							A3($author$project$Main$clipValues, value, 30, 270));
+					} else {
+						return _Utils_Tuple2(false, 90);
+					}
+				}();
+				var isFloat = _v18.a;
+				var tempoFloat = _v18.b;
+				return isInt ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							tempo: $elm$core$String$fromInt(tempoInt)
+						}),
+					$author$project$Main$updateTempo(tempoInt)) : (isFloat ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							tempo: $elm$core$String$fromInt(
+								$elm$core$Basics$floor(tempoFloat))
+						}),
+					$author$project$Main$updateTempo(tempoFloat)) : _Utils_Tuple2(model, $elm$core$Platform$Cmd$none));
 		}
 	});
+var $author$project$Main$FixTempo = function (a) {
+	return {$: 'FixTempo', a: a};
+};
 var $author$project$Main$UpdateSequencerLength = function (a) {
 	return {$: 'UpdateSequencerLength', a: a};
+};
+var $author$project$Main$UpdateTempo = function (a) {
+	return {$: 'UpdateTempo', a: a};
 };
 var $elm$json$Json$Encode$bool = _Json_wrap;
 var $elm$html$Html$Attributes$boolProperty = F2(
@@ -6790,6 +6864,12 @@ var $author$project$Main$offsetButtons = function (offset) {
 					]))
 			]));
 };
+var $elm$html$Html$Events$onBlur = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'blur',
+		$elm$json$Json$Decode$succeed(msg));
+};
 var $author$project$Main$PlaySequence = {$: 'PlaySequence'};
 var $author$project$Main$StopSequence = {$: 'StopSequence'};
 var $author$project$Main$playingButton = function (isPlaying) {
@@ -6954,6 +7034,25 @@ var $author$project$Main$view = function (model) {
 		_List_fromArray(
 			[
 				$author$project$Main$playingButton(model.playing),
+				A2(
+				$elm$html$Html$input,
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$style, 'color', 'yellow'),
+						A2($elm$html$Html$Attributes$style, 'background-color', 'black'),
+						A2($elm$html$Html$Attributes$style, 'padding', '4px 12px'),
+						A2($elm$html$Html$Attributes$style, 'border-radius', '28px'),
+						A2($elm$html$Html$Attributes$style, 'font-size', '0.8em'),
+						A2($elm$html$Html$Attributes$style, 'border', '2px solid purple'),
+						A2($elm$html$Html$Attributes$style, 'width', '30px'),
+						A2($elm$html$Html$Attributes$style, 'margin-left', '5px'),
+						A2($elm$html$Html$Attributes$style, 'text-align', 'center'),
+						$elm$html$Html$Attributes$value(model.tempo),
+						$elm$html$Html$Events$onInput($author$project$Main$UpdateTempo),
+						$elm$html$Html$Events$onBlur(
+						$author$project$Main$FixTempo(model.tempo))
+					]),
+				_List_Nil),
 				$author$project$Main$kickControls(controls),
 				$author$project$Main$sequencerControls(
 				_List_fromArray(
