@@ -7,10 +7,6 @@ import Html.Attributes as A exposing (disabled)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Parser exposing (..)
 
-
-port playKick : KickParams -> Cmd msg
-
-
 port playSequence : () -> Cmd msg
 
 
@@ -220,8 +216,7 @@ addValueToString string value =
 
 
 type Msg
-    = PlayKick
-    | PlaySequence
+    = PlaySequence
     | StopSequence
     | StepNumber Int
     | Steps Int
@@ -237,11 +232,6 @@ type Msg
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        PlayKick ->
-            ( model
-            , playKick { freq = 40, pitch = 10, wave = "sine", decay = 0.1, punch = 0.5, volume = 1 }
-            )
-
         PlaySequence ->
             ( { model | playing = True }
             , playSequence ()

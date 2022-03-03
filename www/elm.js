@@ -5780,47 +5780,6 @@ var $author$project$Main$parseString = function (string) {
 	return $elm$core$Result$toMaybe(
 		A2($elm$parser$Parser$run, $elm$parser$Parser$float, string));
 };
-var $elm$json$Json$Encode$float = _Json_wrap;
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Main$playKick = _Platform_outgoingPort(
-	'playKick',
-	function ($) {
-		return $elm$json$Json$Encode$object(
-			_List_fromArray(
-				[
-					_Utils_Tuple2(
-					'decay',
-					$elm$json$Json$Encode$float($.decay)),
-					_Utils_Tuple2(
-					'freq',
-					$elm$json$Json$Encode$float($.freq)),
-					_Utils_Tuple2(
-					'pitch',
-					$elm$json$Json$Encode$float($.pitch)),
-					_Utils_Tuple2(
-					'punch',
-					$elm$json$Json$Encode$float($.punch)),
-					_Utils_Tuple2(
-					'volume',
-					$elm$json$Json$Encode$float($.volume)),
-					_Utils_Tuple2(
-					'wave',
-					$elm$json$Json$Encode$string($.wave))
-				]));
-	});
 var $elm$json$Json$Encode$null = _Json_encodeNull;
 var $author$project$Main$playSequence = _Platform_outgoingPort(
 	'playSequence',
@@ -6103,6 +6062,21 @@ var $author$project$Main$stopSequence = _Platform_outgoingPort(
 	function ($) {
 		return $elm$json$Json$Encode$null;
 	});
+var $elm$json$Json$Encode$float = _Json_wrap;
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Main$updateKick = _Platform_outgoingPort(
 	'updateKick',
 	function ($) {
@@ -6175,11 +6149,6 @@ var $author$project$Main$updateTempo = _Platform_outgoingPort('updateTempo', $el
 var $author$project$Main$update = F2(
 	function (msg, model) {
 		switch (msg.$) {
-			case 'PlayKick':
-				return _Utils_Tuple2(
-					model,
-					$author$project$Main$playKick(
-						{decay: 0.1, freq: 40, pitch: 10, punch: 0.5, volume: 1, wave: 'sine'}));
 			case 'PlaySequence':
 				return _Utils_Tuple2(
 					_Utils_update(

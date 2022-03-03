@@ -6,10 +6,6 @@ let interval = null;
 
 var app = Elm.Main.init({ node: document.querySelector("main") });
 
-app.ports.playKick.subscribe(function (params) {
-  let { freq, pitch, wave, decay, punch, volume } = params;
-  sound.play(freq, pitch, wave, decay, punch, volume);
-});
 app.ports.playSequence.subscribe(function () {
   sound.start();
   if (!interval) {
