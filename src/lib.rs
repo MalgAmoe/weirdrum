@@ -94,7 +94,7 @@ enum Trigger<Sound> {
     LockTrigger(Sound),
 }
 
-#[derive(Debug, Clone, Copy)]
+// #[derive(Debug, Clone, Copy)]
 struct Kick {
     freq: f32,
     pitch: f32,
@@ -165,6 +165,29 @@ fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {
     }
 }
 
+fn get_sequencer_steps(sequencer: &mut Sequencer, time: f64) -> i8 {
+    let mut step = get_step(
+        sequencer.step_to_schedule,
+        sequencer.steps,
+    );
+    for _ in 0..16 {
+        match sequencer.trigger_times[step as usize] {
+            Some(trigger_time) => {
+                if trigger_time < time {
+                    sequencer.step_playing = step;
+                    return step;
+                }
+            }
+            _ => {}
+        }
+        step = get_step(
+            sequencer.step_to_schedule,
+            sequencer.steps,
+        );
+    }
+    sequencer.step_playing
+}
+
 #[wasm_bindgen]
 impl Audio {
     #[wasm_bindgen(constructor)]
@@ -180,6 +203,10 @@ impl Audio {
             default_kick: Kick::default(),
             tempo: 90.0,
         })
+    }
+
+    fn get_sequencer(&mut self) -> &mut Sequencer {
+        &mut self.kick_sequencer
     }
 
     #[wasm_bindgen]
@@ -231,44 +258,30 @@ impl Audio {
     #[wasm_bindgen]
     pub fn get_steps(&mut self) -> i8 {
         let time = self.ctx.current_time();
-        let mut step = get_step(
-            self.kick_sequencer.step_to_schedule,
-            self.kick_sequencer.steps,
-        );
-        for _ in 0..16 {
-            match self.kick_sequencer.trigger_times[step as usize] {
-                Some(trigger_time) => {
-                    if trigger_time < time {
-                        self.kick_sequencer.step_playing = step;
-                        return step;
-                    }
-                }
-                _ => {}
-            }
-            step = get_step(
-                self.kick_sequencer.step_to_schedule,
-                self.kick_sequencer.steps,
-            );
-        }
-        self.kick_sequencer.step_playing
+        let seq = self.get_sequencer();
+        get_sequencer_steps(seq, time)
     }
 
     #[wasm_bindgen]
     pub fn update_sequencer_length(&mut self, length: i8) {
-        self.kick_sequencer.steps = length;
-        self.kick_sequencer.step_delta = (60.0 / self.tempo as f64) * (4.0 / length as f64);
+        let tempo = self.tempo;
+        let seq = self.get_sequencer();
+        seq.steps = length;
+        seq.step_delta = (60.0 / tempo as f64) * (4.0 / length as f64);
     }
 
     #[wasm_bindgen]
     pub fn update_offset(&mut self, offset: f64) {
-        self.kick_sequencer.offset = offset;
+        let seq = self.get_sequencer();
+        seq.offset = offset;
     }
 
     #[wasm_bindgen]
     pub fn update_tempo(&mut self, tempo: f32) {
         self.tempo = tempo;
-        self.kick_sequencer.step_delta =
-            (60.0 / tempo as f64) * (4.0 / self.kick_sequencer.steps as f64);
+        let seq = self.get_sequencer();
+        seq.step_delta =
+            (60.0 / tempo as f64) * (4.0 / seq.steps as f64);
     }
 
     #[wasm_bindgen]
