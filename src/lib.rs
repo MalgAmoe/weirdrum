@@ -12,28 +12,23 @@ use web_sys::AudioContext;
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 #[wasm_bindgen]
-extern "C" {
-    fn alert(s: &str);
-}
-
-#[wasm_bindgen]
 pub struct Audio {
     ctx: AudioContext,
     schedule_interval: f32,
     kick_sequencer: Sequencer,
+    default_kick: Kick,
     tempo: f32,
 }
 
-#[derive(Debug, Clone, Copy)]
+// #[derive(Debug, Clone, Copy)]
 struct Sequencer {
-    sequence: [Option<KickTrigger>; 16],
+    sequence: [Option<Trigger<Box<dyn Sound>>>; 16],
     trigger_times: [Option<f64>; 16],
     steps: i8,
     step_to_schedule: i8,
     step_playing: i8,
     next_step_time: f64,
     step_delta: f64,
-    default_trigger: Kick,
     offset: f64,
 }
 
@@ -47,23 +42,24 @@ impl Sequencer {
             step_playing: 0,
             next_step_time: 0.0,
             step_delta: (60.0 / tempo as f64) * (4.0 / 16.0),
-            default_trigger: Kick::default(),
             offset: 0.0,
         }
     }
+
     fn schedule_sounds(
         &mut self,
         ctx: &AudioContext,
+        sound: &dyn Sound,
         schedule_interval: f32,
     ) -> Result<(), JsValue> {
         while self.next_step_time < ctx.current_time() + schedule_interval as f64 {
-            match self.sequence[self.step_to_schedule as usize] {
-                Some(kick_trigger) => match kick_trigger {
-                    KickTrigger::LockTrigger(kick) => {
-                        kick.play(ctx,self.next_step_time, self.offset)?;
+            match &self.sequence[self.step_to_schedule as usize] {
+                Some(trigger) => match trigger {
+                    Trigger::LockTrigger(locked_sound) => {
+                        locked_sound.play(ctx, self.next_step_time, self.offset)?;
                     }
-                    KickTrigger::Trigger => {
-                        self.default_trigger.play(ctx, self.next_step_time, self.offset)?;
+                    Trigger::NormalTrigger => {
+                        sound.play(ctx, self.next_step_time, self.offset)?;
                     }
                 },
                 None => {}
@@ -77,9 +73,11 @@ impl Sequencer {
         }
         Ok(())
     }
+
     fn play(&mut self, ctx: &AudioContext) {
         self.next_step_time = ctx.current_time();
     }
+
     fn stop(&mut self) {
         self.step_to_schedule = 0;
         self.step_playing = 0;
@@ -87,10 +85,13 @@ impl Sequencer {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-enum KickTrigger {
-    Trigger,
-    LockTrigger(Kick),
+trait Sound {
+    fn play(&self, ctx: &AudioContext, time_delta: f64, offset: f64) -> Result<(), JsValue>;
+}
+
+enum Trigger<Sound> {
+    NormalTrigger,
+    LockTrigger(Sound),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -116,29 +117,21 @@ impl Default for Kick {
     }
 }
 
-impl Kick {
-    fn play(
-        self,
-        ctx: &AudioContext,
-        time_delta: f64,
-        offset: f64,
-    ) -> Result<(), JsValue> {
+impl Sound for Kick {
+    fn play(&self, ctx: &AudioContext, time_delta: f64, offset: f64) -> Result<(), JsValue> {
         let time = time_delta + offset + 0.05;
         let osc = ctx.create_oscillator()?;
         osc.set_type(self.wave);
         let gain = ctx.create_gain()?;
-    
         let compressor = ctx.create_dynamics_compressor()?;
         compressor.threshold().set_value(-30.0 * self.punch);
         compressor.knee().set_value(1.0);
         compressor.ratio().set_value(5.0);
         compressor.attack().set_value(0.1);
         compressor.release().set_value(0.1);
-    
         osc.connect_with_audio_node(&gain)?;
         gain.connect_with_audio_node(&compressor)?;
         compressor.connect_with_audio_node(&ctx.destination())?;
-    
         osc.frequency()
             .set_value_at_time(self.freq + self.freq * self.pitch, time)?;
         osc.frequency()
@@ -151,7 +144,7 @@ impl Kick {
         osc.start()?;
         osc.stop_with_when(time + 4.0)?;
         Ok(())
-    }    
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -178,19 +171,16 @@ impl Audio {
     pub fn new() -> Result<Audio, JsValue> {
         let ctx = web_sys::AudioContext::new()?;
         let mut kick_sequencer = Sequencer::new(90.0);
-        kick_sequencer.sequence = [
-            None, None, None, None, None, None, None, None, None, None, None, None, None, None,
-            None, None,
-        ];
+        kick_sequencer.sequence = Default::default();
 
         Ok(Audio {
             ctx,
             schedule_interval: 0.04,
             kick_sequencer: kick_sequencer,
-            tempo: 90.0
+            default_kick: Kick::default(),
+            tempo: 90.0,
         })
     }
-
 
     #[wasm_bindgen]
     pub fn update(
@@ -211,7 +201,7 @@ impl Audio {
             punch: punch,
             volume,
         };
-        self.kick_sequencer.default_trigger = kick;
+        self.default_kick = kick;
         Ok(())
     }
 
@@ -230,15 +220,21 @@ impl Audio {
 
     #[wasm_bindgen]
     pub fn schedule(&mut self) -> Result<(), JsValue> {
-        self.kick_sequencer
-            .schedule_sounds(&self.ctx, self.schedule_interval)?;
+        self.kick_sequencer.schedule_sounds(
+            &self.ctx,
+            &self.default_kick,
+            self.schedule_interval,
+        )?;
         Ok(())
     }
 
     #[wasm_bindgen]
     pub fn get_steps(&mut self) -> i8 {
         let time = self.ctx.current_time();
-        let mut step = get_step(self.kick_sequencer.step_to_schedule, self.kick_sequencer.steps);
+        let mut step = get_step(
+            self.kick_sequencer.step_to_schedule,
+            self.kick_sequencer.steps,
+        );
         for _ in 0..16 {
             match self.kick_sequencer.trigger_times[step as usize] {
                 Some(trigger_time) => {
@@ -249,7 +245,10 @@ impl Audio {
                 }
                 _ => {}
             }
-            step = get_step(self.kick_sequencer.step_to_schedule, self.kick_sequencer.steps);
+            step = get_step(
+                self.kick_sequencer.step_to_schedule,
+                self.kick_sequencer.steps,
+            );
         }
         self.kick_sequencer.step_playing
     }
@@ -268,13 +267,14 @@ impl Audio {
     #[wasm_bindgen]
     pub fn update_tempo(&mut self, tempo: f32) {
         self.tempo = tempo;
-        self.kick_sequencer.step_delta = (60.0 / tempo as f64) * (4.0 / self.kick_sequencer.steps as f64);
+        self.kick_sequencer.step_delta =
+            (60.0 / tempo as f64) * (4.0 / self.kick_sequencer.steps as f64);
     }
 
     #[wasm_bindgen]
     pub fn update_steps(&mut self, steps: JsValue) {
         let elements: Vec<KickValues> = steps.into_serde().unwrap();
-        let mut steps: [Option<KickTrigger>; 16] = Default::default();
+        let mut steps: [Option<Trigger<Box<dyn Sound>>>; 16] = Default::default();
         for i in 0..16 {
             steps[i] = match &elements[i] {
                 KickValues {
@@ -287,7 +287,7 @@ impl Audio {
                     step_type,
                 } => match step_type.as_str() {
                     "trigger" => {
-                        self.kick_sequencer.default_trigger = Kick {
+                        self.default_kick = Kick {
                             freq: *freq,
                             pitch: *pitch,
                             wave: wave_string_to_osc(wave),
@@ -295,16 +295,16 @@ impl Audio {
                             punch: *punch,
                             volume: *volume,
                         };
-                        Some(KickTrigger::Trigger)
+                        Some(Trigger::NormalTrigger)
                     }
-                    "lock_trigger" => Some(KickTrigger::LockTrigger(Kick {
+                    "lock_trigger" => Some(Trigger::LockTrigger(Box::new(Kick {
                         freq: *freq,
                         pitch: *pitch,
                         wave: wave_string_to_osc(wave),
                         decay: *decay,
                         punch: *punch,
                         volume: *volume,
-                    })),
+                    }))),
                     &_ => None,
                 },
             }
