@@ -20,13 +20,8 @@ extern "C" {
 pub struct Audio {
     ctx: AudioContext,
     schedule_interval: f32,
-    sequencer: Sequencer,
+    kick_sequencer: Sequencer,
     tempo: f32,
-}
-
-struct GlobalTransport {
-    tempo: f32,
-    playing: bool,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -90,11 +85,6 @@ impl Sequencer {
         self.step_playing = 0;
         self.trigger_times = Default::default();
     }
-}
-
-#[derive(Debug, Clone, Copy)]
-enum Trigger {
-    KickTrigger,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -196,7 +186,7 @@ impl Audio {
         Ok(Audio {
             ctx,
             schedule_interval: 0.04,
-            sequencer: kick_sequencer,
+            kick_sequencer: kick_sequencer,
             tempo: 90.0
         })
     }
@@ -221,7 +211,7 @@ impl Audio {
             punch: punch,
             volume,
         };
-        self.sequencer.default_trigger = kick;
+        self.kick_sequencer.default_trigger = kick;
         Ok(())
     }
 
@@ -229,18 +219,18 @@ impl Audio {
     pub fn start(&mut self) -> Result<(), JsValue> {
         // let l = format!("{:?}", self.ctx.current_time());
         // console::log_1(&l.into());
-        self.sequencer.play(&self.ctx);
+        self.kick_sequencer.play(&self.ctx);
         Ok(())
     }
 
     #[wasm_bindgen]
     pub fn stop(&mut self) {
-        self.sequencer.stop();
+        self.kick_sequencer.stop();
     }
 
     #[wasm_bindgen]
     pub fn schedule(&mut self) -> Result<(), JsValue> {
-        self.sequencer
+        self.kick_sequencer
             .schedule_sounds(&self.ctx, self.schedule_interval)?;
         Ok(())
     }
@@ -248,37 +238,37 @@ impl Audio {
     #[wasm_bindgen]
     pub fn get_steps(&mut self) -> i8 {
         let time = self.ctx.current_time();
-        let mut step = get_step(self.sequencer.step_to_schedule, self.sequencer.steps);
+        let mut step = get_step(self.kick_sequencer.step_to_schedule, self.kick_sequencer.steps);
         for _ in 0..16 {
-            match self.sequencer.trigger_times[step as usize] {
+            match self.kick_sequencer.trigger_times[step as usize] {
                 Some(trigger_time) => {
                     if trigger_time < time {
-                        self.sequencer.step_playing = step;
+                        self.kick_sequencer.step_playing = step;
                         return step;
                     }
                 }
                 _ => {}
             }
-            step = get_step(self.sequencer.step_to_schedule, self.sequencer.steps);
+            step = get_step(self.kick_sequencer.step_to_schedule, self.kick_sequencer.steps);
         }
-        self.sequencer.step_playing
+        self.kick_sequencer.step_playing
     }
 
     #[wasm_bindgen]
     pub fn update_sequencer_length(&mut self, length: i8) {
-        self.sequencer.steps = length;
-        self.sequencer.step_delta = (60.0 / self.tempo as f64) * (4.0 / length as f64);
+        self.kick_sequencer.steps = length;
+        self.kick_sequencer.step_delta = (60.0 / self.tempo as f64) * (4.0 / length as f64);
     }
 
     #[wasm_bindgen]
     pub fn update_offset(&mut self, offset: f64) {
-        self.sequencer.offset = offset;
+        self.kick_sequencer.offset = offset;
     }
 
     #[wasm_bindgen]
     pub fn update_tempo(&mut self, tempo: f32) {
         self.tempo = tempo;
-        self.sequencer.step_delta = (60.0 / tempo as f64) * (4.0 / self.sequencer.steps as f64);
+        self.kick_sequencer.step_delta = (60.0 / tempo as f64) * (4.0 / self.kick_sequencer.steps as f64);
     }
 
     #[wasm_bindgen]
@@ -297,7 +287,7 @@ impl Audio {
                     step_type,
                 } => match step_type.as_str() {
                     "trigger" => {
-                        self.sequencer.default_trigger = Kick {
+                        self.kick_sequencer.default_trigger = Kick {
                             freq: *freq,
                             pitch: *pitch,
                             wave: wave_string_to_osc(wave),
@@ -319,7 +309,7 @@ impl Audio {
                 },
             }
         }
-        self.sequencer.sequence = steps;
+        self.kick_sequencer.sequence = steps;
     }
 }
 
