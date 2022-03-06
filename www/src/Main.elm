@@ -7,6 +7,7 @@ import Html.Attributes as A exposing (disabled)
 import Html.Events exposing (onBlur, onClick, onInput)
 import Parser exposing (..)
 
+
 port playSequence : () -> Cmd msg
 
 
@@ -33,8 +34,13 @@ port receiveStepNumber : (Int -> msg) -> Sub msg
 
 type Step
     = Trigger
-    | LockTrigger KickParams
+    | LockTrigger Sound
     | EmptyStep
+
+
+type Sound
+    = KickSound KickParams
+    | SnareSound SnareParams
 
 
 type StepMove
@@ -73,16 +79,43 @@ type alias KickParamsStrings =
     }
 
 
-type alias Model =
-    { playing : Bool
-    , kick : KickParams
-    , kickEdit : Maybe KickParams
-    , stepNumber : Int
+type alias SnareParams =
+    { freq : Float
+    , pitch : Float
+    , blend : Float
+    , decay : Float
+    , punch : Float
+    , volume : Float
+    }
+
+
+type alias SnareParamsStrings =
+    { freq : String
+    , pitch : String
+    , blend : String
+    , decay : String
+    , punch : String
+    , volume : String
+    }
+
+
+type alias Sequencer =
+    { stepNumber : Int
     , steps : List Step
     , editing : Bool
     , editingStep : Maybe Int
     , sequencerLength : Int
     , offset : Int
+    }
+
+
+type alias Model =
+    { playing : Bool
+    , kick : KickParams
+    , kickEdit : Maybe KickParams
+    , kickSequencer : Sequencer
+    , snareEdit : Maybe SnareParams
+    , snareSequencer : Sequencer
     , tempo : String
     }
 
@@ -99,12 +132,23 @@ initialModel _ =
             , volume = 0.5
             }
       , kickEdit = Nothing
-      , stepNumber = 0
-      , steps = emptySequencer
-      , editing = False
-      , editingStep = Nothing
-      , sequencerLength = 16
-      , offset = 0
+      , kickSequencer =
+            { stepNumber = 0
+            , steps = emptySequencer
+            , editing = False
+            , editingStep = Nothing
+            , sequencerLength = 16
+            , offset = 0
+            }
+      , snareEdit = Nothing
+      , snareSequencer =
+            { stepNumber = 0
+            , steps = emptySequencer
+            , editing = False
+            , editingStep = Nothing
+            , sequencerLength = 16
+            , offset = 0
+            }
       , tempo = "90"
       }
     , Cmd.none
@@ -116,8 +160,8 @@ emptySequencer =
     List.map (\_ -> EmptyStep) (List.range 0 15)
 
 
-transformStep : KickParams -> Step -> KickParamsOut
-transformStep kickParams step =
+transformKickStep : KickParams -> Step -> KickParamsOut
+transformKickStep kickParams step =
     case step of
         Trigger ->
             { freq = kickParams.freq
@@ -129,15 +173,27 @@ transformStep kickParams step =
             , step_type = "trigger"
             }
 
-        LockTrigger params ->
-            { freq = params.freq
-            , pitch = params.pitch
-            , wave = params.wave
-            , decay = params.decay
-            , punch = params.punch
-            , volume = params.volume
-            , step_type = "lock_trigger"
-            }
+        LockTrigger sound ->
+            case sound of
+                KickSound kick ->
+                    { freq = kick.freq
+                    , pitch = kick.pitch
+                    , wave = kick.wave
+                    , decay = kick.decay
+                    , punch = kick.punch
+                    , volume = kick.volume
+                    , step_type = "lock_trigger"
+                    }
+
+                _ ->
+                    { freq = 0
+                    , pitch = 0
+                    , wave = ""
+                    , decay = 0
+                    , punch = 0
+                    , volume = 0
+                    , step_type = "empty"
+                    }
 
         EmptyStep ->
             { freq = 0
@@ -182,12 +238,12 @@ compileSteps steps kick kickEdit stepNumber =
             Array.fromList steps
 
         newStep =
-            LockTrigger kickEdit
+            LockTrigger (KickSound kickEdit)
 
         newSteps =
             Array.toList <| Array.set stepNumber newStep stepArray
     in
-    ( newSteps, List.map (\a -> transformStep kick a) newSteps )
+    ( newSteps, List.map (\a -> transformKickStep kick a) newSteps )
 
 
 clipValues : comparable -> comparable -> comparable -> comparable
@@ -222,9 +278,9 @@ type Msg
     | Steps Int
     | Move StepMove
     | ToggleEdit
-    | UpdateParams KickParamsStrings
-    | UpdateSequencerLength String
-    | UpdateOffset Int
+    | UpdateKickParams KickParamsStrings
+    | UpdateKickSequencerLength String
+    | UpdateKickOffset Int
     | UpdateTempo String
     | FixTempo String
 
@@ -242,7 +298,7 @@ update msg model =
             , stopSequence ()
             )
 
-        UpdateParams params ->
+        UpdateKickParams params ->
             let
                 freq =
                     case parseString params.freq of
@@ -289,13 +345,16 @@ update msg model =
             in
             case model.kickEdit of
                 Just _ ->
-                    case model.editingStep of
+                    case model.kickSequencer.editingStep of
                         Just stepNumber ->
                             let
+                                kickSequencer =
+                                    model.kickSequencer
+
                                 ( steps, compiledSteps ) =
-                                    compileSteps model.steps model.kick newKick stepNumber
+                                    compileSteps kickSequencer.steps model.kick newKick stepNumber
                             in
-                            ( { model | kickEdit = Just newKick, steps = steps }, updateSequence compiledSteps )
+                            ( { model | kickEdit = Just newKick, kickSequencer = { kickSequencer | steps = steps } }, updateSequence compiledSteps )
 
                         Nothing ->
                             ( { model | kickEdit = Just newKick }, Cmd.none )
@@ -304,12 +363,16 @@ update msg model =
                     ( { model | kick = newKick }, updateKick newKick )
 
         StepNumber step ->
-            ( { model | stepNumber = step }, Cmd.none )
+            let
+                kickSequencer =
+                    model.kickSequencer
+            in
+            ( { model | kickSequencer = { kickSequencer | stepNumber = step } }, Cmd.none )
 
         Steps value ->
             let
                 stepArray =
-                    Array.fromList model.steps
+                    Array.fromList model.kickSequencer.steps
 
                 step =
                     Array.get value stepArray
@@ -317,30 +380,35 @@ update msg model =
                 ( newStep, kickEdit, editingStep ) =
                     case step of
                         Just el ->
-                            if model.editing then
+                            if model.kickSequencer.editing then
                                 case el of
                                     EmptyStep ->
                                         case model.kickEdit of
                                             Just kickEditValue ->
-                                                ( LockTrigger kickEditValue, model.kickEdit, Just value )
+                                                ( LockTrigger (KickSound kickEditValue), model.kickEdit, Just value )
 
                                             Nothing ->
                                                 ( Trigger, Nothing, Nothing )
 
                                     Trigger ->
-                                        ( LockTrigger model.kick, Just model.kick, Just value )
+                                        ( LockTrigger (KickSound model.kick), Just model.kick, Just value )
 
-                                    LockTrigger kickEditValue ->
-                                        case model.editingStep of
-                                            Just stepNumber ->
-                                                if stepNumber == value then
-                                                    ( EmptyStep, Just kickEditValue, Nothing )
+                                    LockTrigger sound ->
+                                        case sound of
+                                            KickSound kickEditValue ->
+                                                case model.kickSequencer.editingStep of
+                                                    Just stepNumber ->
+                                                        if stepNumber == value then
+                                                            ( EmptyStep, Just kickEditValue, Nothing )
 
-                                                else
-                                                    ( LockTrigger kickEditValue, Just kickEditValue, Just value )
+                                                        else
+                                                            ( LockTrigger sound, Just kickEditValue, Just value )
 
-                                            Nothing ->
-                                                ( LockTrigger kickEditValue, Just kickEditValue, Just value )
+                                                    Nothing ->
+                                                        ( LockTrigger sound, Just kickEditValue, Just value )
+
+                                            _ ->
+                                                ( Trigger, Nothing, Nothing )
 
                             else
                                 case el of
@@ -358,19 +426,22 @@ update msg model =
 
                 newSteps =
                     Array.toList <| Array.set value newStep stepArray
+
+                kickSequencer =
+                    model.kickSequencer
             in
-            ( { model | steps = newSteps, editingStep = editingStep, kickEdit = kickEdit }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = editingStep }, kickEdit = kickEdit }, updateSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
 
         Move value ->
             let
                 stepsArray =
-                    Array.fromList model.steps
+                    Array.fromList model.kickSequencer.steps
 
                 start =
-                    Array.toList <| Array.slice 0 model.sequencerLength stepsArray
+                    Array.toList <| Array.slice 0 model.kickSequencer.sequencerLength stepsArray
 
                 end =
-                    Array.toList <| Array.slice model.sequencerLength 16 stepsArray
+                    Array.toList <| Array.slice model.kickSequencer.sequencerLength 16 stepsArray
 
                 newSteps =
                     (case value of
@@ -381,13 +452,16 @@ update msg model =
                             List.reverse <| rotateSteps (List.reverse start)
                     )
                         ++ end
+
+                kickSequencer =
+                    model.kickSequencer
             in
-            ( { model | steps = newSteps, editingStep = Nothing }, updateSequence (List.map (\a -> transformStep model.kick a) newSteps) )
+            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = Nothing } }, updateSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
 
         ToggleEdit ->
             let
                 editing =
-                    not model.editing
+                    not model.kickSequencer.editing
 
                 kickEdit =
                     if editing then
@@ -395,10 +469,13 @@ update msg model =
 
                     else
                         Nothing
-            in
-            ( { model | editing = editing, kickEdit = kickEdit, editingStep = Nothing }, Cmd.none )
 
-        UpdateSequencerLength lengthStr ->
+                kickSequencer =
+                    model.kickSequencer
+            in
+            ( { model | kickSequencer = { kickSequencer | editing = editing, editingStep = Nothing }, kickEdit = kickEdit }, Cmd.none )
+
+        UpdateKickSequencerLength lengthStr ->
             let
                 length =
                     case
@@ -411,21 +488,27 @@ update msg model =
 
                         Nothing ->
                             16
-            in
-            ( { model | sequencerLength = length }, updateSequencerLength length )
 
-        UpdateOffset value ->
+                kickSequencer =
+                    model.kickSequencer
+            in
+            ( { model | kickSequencer = { kickSequencer | sequencerLength = length } }, updateSequencerLength length )
+
+        UpdateKickOffset value ->
             let
                 offset =
                     clipValues
-                        (model.offset + value)
+                        (model.kickSequencer.offset + value)
                         -5
                         5
 
                 offsetFloat =
                     toFloat offset * 0.01
+
+                kickSequencer =
+                    model.kickSequencer
             in
-            ( { model | offset = offset }, updateOffset offsetFloat )
+            ( { model | kickSequencer = { kickSequencer | offset = offset } }, updateOffset offsetFloat )
 
         UpdateTempo tempoStr ->
             let
@@ -515,7 +598,7 @@ view model =
         , kickControls controls
         , sequencerControls
             [ moveStepsButtons
-            , editStepButton model.editing
+            , editStepButton model.kickSequencer.editing
             , input
                 [ A.style "width" "150px"
                 , A.style "background-color" "purple"
@@ -533,8 +616,8 @@ view model =
                 , A.min "2"
                 , A.max "16"
                 , A.step "1"
-                , A.value (String.fromInt model.sequencerLength)
-                , onInput UpdateSequencerLength
+                , A.value (String.fromInt model.kickSequencer.sequencerLength)
+                , onInput UpdateKickSequencerLength
                 ]
                 []
             , div
@@ -547,11 +630,11 @@ view model =
                 , A.style "text-align" "center"
                 , A.style "width" "30px"
                 ]
-                [ text (String.fromInt model.sequencerLength)
+                [ text (String.fromInt model.kickSequencer.sequencerLength)
                 ]
             ]
-        , sequencerSteps model.steps model.stepNumber model.editingStep model.sequencerLength
-        , offsetButtons model.offset
+        , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength
+        , offsetButtons model.kickSequencer.offset
         ]
 
 
@@ -607,12 +690,12 @@ kickControls kickParams =
         [ A.style "display" "flex"
         , A.style "flex-direction" "column"
         ]
-        [ waveButton (kickParams.wave == "sine") (\a -> UpdateParams { s | wave = a })
-        , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" (\a -> UpdateParams { s | freq = a })
-        , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" (\a -> UpdateParams { s | pitch = a })
-        , sliderWithValue "punch" kickParams.punch "0" "2" "0.001" (\a -> UpdateParams { s | punch = a })
-        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateParams { s | decay = a })
-        , sliderWithValue "volume" kickParams.volume "0.01" "1" "0.001" (\a -> UpdateParams { s | volume = a })
+        [ waveButton (kickParams.wave == "sine") (\a -> UpdateKickParams { s | wave = a })
+        , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" (\a -> UpdateKickParams { s | freq = a })
+        , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" (\a -> UpdateKickParams { s | pitch = a })
+        , sliderWithValue "punch" kickParams.punch "0" "2" "0.001" (\a -> UpdateKickParams { s | punch = a })
+        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateKickParams { s | decay = a })
+        , sliderWithValue "volume" kickParams.volume "0.01" "1" "0.001" (\a -> UpdateKickParams { s | volume = a })
         ]
 
 
@@ -741,13 +824,13 @@ offsetButtons offset =
     div
         [ A.style "margin-top" "10px"
         ]
-        [ button (onClick (UpdateOffset -1) :: buttonStyles) [ text "<" ]
+        [ button (onClick (UpdateKickOffset -1) :: buttonStyles) [ text "<" ]
         , span
             [ A.style "margin-left" "5px"
             , A.style "margin-right" "5px"
             ]
             [ text (String.fromInt offset ++ " ms") ]
-        , button (onClick (UpdateOffset 1) :: buttonStyles) [ text ">" ]
+        , button (onClick (UpdateKickOffset 1) :: buttonStyles) [ text ">" ]
         ]
 
 
