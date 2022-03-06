@@ -2,6 +2,7 @@ use web_sys::AudioContext;
 use wasm_bindgen::prelude::*;
 
 pub mod kick;
+pub mod snare;
 
 pub trait Sound {
   fn play(&self, ctx: &AudioContext, time_delta: f64, offset: f64) -> Result<(), JsValue>;

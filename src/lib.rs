@@ -5,6 +5,7 @@ use web_sys::console;
 use web_sys::AudioContext;
 
 mod sounds;
+use sounds::snare::{Snare};
 use sounds::kick::{Kick, KickValues};
 use sounds::{Sound, wave_string_to_osc};
 
@@ -23,6 +24,7 @@ pub struct Audio {
     schedule_interval: f32,
     kick_sequencer: Sequencer,
     default_kick: Kick,
+    default_snare: Snare,
     tempo: f32,
 }
 
@@ -39,6 +41,7 @@ impl Audio {
             schedule_interval: 0.04,
             kick_sequencer: kick_sequencer,
             default_kick: Kick::default(),
+            default_snare: Snare::default(),
             tempo: 90.0,
         })
     }

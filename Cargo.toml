@@ -27,6 +27,8 @@ console_error_panic_hook = { version = "0.1.1", optional = true }
 wee_alloc = { version = "0.4.2", optional = true }
 serde_json = "1.0.79"
 serde = { version = "1.0.136", features = ["derive"] }
+getrandom = { version = "0.2", features = ["js"] }
+rand = "0.8.5"
 
 [dev-dependencies]
 wasm-bindgen-test = "0.2"
@@ -44,6 +46,8 @@ features = [
   'DynamicsCompressorNode',
   'AudioWorklet',
   'WaveShaperNode',
+  'AudioBuffer',
+  'AudioBufferSourceNode',
   'console'
 ]
 
