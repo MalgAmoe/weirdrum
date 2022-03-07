@@ -363,7 +363,8 @@ type Msg
     | SnareStepNumber Int
     | KickSteps Int
     | SnareSteps Int
-    | Move StepMove
+    | MoveKick StepMove
+    | MoveSnare StepMove
     | ToggleKickEdit
     | ToggleSnareEdit
     | UpdateSnareParams SnareParamsStrings
@@ -656,7 +657,7 @@ update msg model =
             in
             ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = editingStep }, snareEdit = snareEdit }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
 
-        Move value ->
+        MoveKick value ->
             let
                 stepsArray =
                     Array.fromList model.kickSequencer.steps
@@ -681,6 +682,32 @@ update msg model =
                     model.kickSequencer
             in
             ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = Nothing } }, updateKickSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
+
+        MoveSnare value ->
+            let
+                stepsArray =
+                    Array.fromList model.snareSequencer.steps
+
+                start =
+                    Array.toList <| Array.slice 0 model.snareSequencer.sequencerLength stepsArray
+
+                end =
+                    Array.toList <| Array.slice model.snareSequencer.sequencerLength 16 stepsArray
+
+                newSteps =
+                    (case value of
+                        Left ->
+                            rotateSteps start
+
+                        Right ->
+                            List.reverse <| rotateSteps (List.reverse start)
+                    )
+                        ++ end
+
+                snareSequencer =
+                    model.snareSequencer
+            in
+            ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = Nothing } }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
 
         ToggleKickEdit ->
             let
@@ -865,7 +892,7 @@ view model =
             ]
         , kickControls controlsKick
         , sequencerControls
-            [ moveStepsButtons
+            [ moveStepsButtons MoveKick
             , editStepButton model.kickSequencer.editing ToggleKickEdit
             , input
                 [ A.style "width" "150px"
@@ -905,7 +932,7 @@ view model =
         , offsetButtons model.kickSequencer.offset
         , snareControls controlsSnare
         , sequencerControls
-            [ moveStepsButtons
+            [ moveStepsButtons MoveSnare
             , editStepButton model.snareSequencer.editing ToggleSnareEdit
             , input
                 [ A.style "width" "150px"
@@ -1121,8 +1148,8 @@ playingButton isPlaying =
             [ text "Play" ]
 
 
-moveStepsButtons : Html Msg
-moveStepsButtons =
+moveStepsButtons : (StepMove -> Msg) -> Html Msg
+moveStepsButtons msg =
     let
         buttonStyles =
             [ A.style "padding" "4px 12px"
@@ -1134,8 +1161,8 @@ moveStepsButtons =
             ]
     in
     div []
-        [ button (onClick (Move Left) :: buttonStyles) [ text "<" ]
-        , button (onClick (Move Right) :: buttonStyles) [ text ">" ]
+        [ button (onClick (msg Left) :: buttonStyles) [ text "<" ]
+        , button (onClick (msg Right) :: buttonStyles) [ text ">" ]
         ]
 
 
