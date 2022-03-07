@@ -12,6 +12,17 @@ pub struct Snare {
   pub volume: f32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct SnareValues {
+    pub freq: f32,
+    pub pitch: f32,
+    pub blend: f32,
+    pub decay: f32,
+    pub punch: f32,
+    pub volume: f32,
+    pub step_type: String,
+}
+
 impl Default for Snare {
   fn default() -> Snare {
     Snare {

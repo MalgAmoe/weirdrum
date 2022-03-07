@@ -17,10 +17,13 @@ port stopSequence : () -> Cmd msg
 port updateKick : KickParams -> Cmd msg
 
 
-port updateSequence : List KickParamsOut -> Cmd msg
+port updateKickSequence : List KickParamsOut -> Cmd msg
 
 
-port updateSequencerLength : Int -> Cmd msg
+port updateSnareSequence : List SnareParamsOut -> Cmd msg
+
+
+port updateKickSequencerLength : Int -> Cmd msg
 
 
 port updateOffset : Float -> Cmd msg
@@ -89,6 +92,17 @@ type alias SnareParams =
     }
 
 
+type alias SnareParamsOut =
+    { freq : Float
+    , pitch : Float
+    , blend : Float
+    , decay : Float
+    , punch : Float
+    , volume : Float
+    , step_type : String
+    }
+
+
 type alias SnareParamsStrings =
     { freq : String
     , pitch : String
@@ -114,6 +128,7 @@ type alias Model =
     , kick : KickParams
     , kickEdit : Maybe KickParams
     , kickSequencer : Sequencer
+    , snare : SnareParams
     , snareEdit : Maybe SnareParams
     , snareSequencer : Sequencer
     , tempo : String
@@ -139,6 +154,14 @@ initialModel _ =
             , editingStep = Nothing
             , sequencerLength = 16
             , offset = 0
+            }
+      , snare =
+            { freq = 120
+            , pitch = 100
+            , blend = 0.5
+            , decay = 0.1
+            , punch = 1.0
+            , volume = 0.5
             }
       , snareEdit = Nothing
       , snareSequencer =
@@ -199,6 +222,52 @@ transformKickStep kickParams step =
             { freq = 0
             , pitch = 0
             , wave = ""
+            , decay = 0
+            , punch = 0
+            , volume = 0
+            , step_type = "empty"
+            }
+
+
+transformSnareStep : SnareParams -> Step -> SnareParamsOut
+transformSnareStep snareParams step =
+    case step of
+        Trigger ->
+            { freq = snareParams.freq
+            , pitch = snareParams.pitch
+            , blend = snareParams.blend
+            , decay = snareParams.decay
+            , punch = snareParams.punch
+            , volume = snareParams.volume
+            , step_type = "trigger"
+            }
+
+        LockTrigger sound ->
+            case sound of
+                SnareSound snare ->
+                    { freq = snare.freq
+                    , pitch = snare.pitch
+                    , blend = snare.blend
+                    , decay = snare.decay
+                    , punch = snare.punch
+                    , volume = snare.volume
+                    , step_type = "lock_trigger"
+                    }
+
+                _ ->
+                    { freq = 0
+                    , pitch = 0
+                    , blend = 0
+                    , decay = 0
+                    , punch = 0
+                    , volume = 0
+                    , step_type = "empty"
+                    }
+
+        EmptyStep ->
+            { freq = 0
+            , pitch = 0
+            , blend = 0
             , decay = 0
             , punch = 0
             , volume = 0
@@ -275,7 +344,8 @@ type Msg
     = PlaySequence
     | StopSequence
     | StepNumber Int
-    | Steps Int
+    | KickSteps Int
+    | SnareSteps Int
     | Move StepMove
     | ToggleEdit
     | UpdateKickParams KickParamsStrings
@@ -354,7 +424,7 @@ update msg model =
                                 ( steps, compiledSteps ) =
                                     compileSteps kickSequencer.steps model.kick newKick stepNumber
                             in
-                            ( { model | kickEdit = Just newKick, kickSequencer = { kickSequencer | steps = steps } }, updateSequence compiledSteps )
+                            ( { model | kickEdit = Just newKick, kickSequencer = { kickSequencer | steps = steps } }, updateKickSequence compiledSteps )
 
                         Nothing ->
                             ( { model | kickEdit = Just newKick }, Cmd.none )
@@ -369,7 +439,7 @@ update msg model =
             in
             ( { model | kickSequencer = { kickSequencer | stepNumber = step } }, Cmd.none )
 
-        Steps value ->
+        KickSteps value ->
             let
                 stepArray =
                     Array.fromList model.kickSequencer.steps
@@ -430,7 +500,70 @@ update msg model =
                 kickSequencer =
                     model.kickSequencer
             in
-            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = editingStep }, kickEdit = kickEdit }, updateSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
+            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = editingStep }, kickEdit = kickEdit }, updateKickSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
+
+        SnareSteps value ->
+            let
+                stepArray =
+                    Array.fromList model.snareSequencer.steps
+
+                step =
+                    Array.get value stepArray
+
+                ( newStep, snareEdit, editingStep ) =
+                    case step of
+                        Just el ->
+                            if model.snareSequencer.editing then
+                                case el of
+                                    EmptyStep ->
+                                        case model.snareEdit of
+                                            Just snareEditValue ->
+                                                ( LockTrigger (SnareSound snareEditValue), model.snareEdit, Just value )
+
+                                            Nothing ->
+                                                ( Trigger, Nothing, Nothing )
+
+                                    Trigger ->
+                                        ( LockTrigger (SnareSound model.snare), Just model.snare, Just value )
+
+                                    LockTrigger sound ->
+                                        case sound of
+                                            SnareSound snareEditValue ->
+                                                case model.snareSequencer.editingStep of
+                                                    Just stepNumber ->
+                                                        if stepNumber == value then
+                                                            ( EmptyStep, Just snareEditValue, Nothing )
+
+                                                        else
+                                                            ( LockTrigger sound, Just snareEditValue, Just value )
+
+                                                    Nothing ->
+                                                        ( LockTrigger sound, Just snareEditValue, Just value )
+
+                                            _ ->
+                                                ( Trigger, Nothing, Nothing )
+
+                            else
+                                case el of
+                                    EmptyStep ->
+                                        ( Trigger, Nothing, Nothing )
+
+                                    Trigger ->
+                                        ( EmptyStep, Nothing, Nothing )
+
+                                    LockTrigger _ ->
+                                        ( EmptyStep, Nothing, Nothing )
+
+                        _ ->
+                            ( EmptyStep, Nothing, Nothing )
+
+                newSteps =
+                    Array.toList <| Array.set value newStep stepArray
+
+                snareSequencer =
+                    model.snareSequencer
+            in
+            ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = editingStep }, snareEdit = snareEdit }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
 
         Move value ->
             let
@@ -456,7 +589,7 @@ update msg model =
                 kickSequencer =
                     model.kickSequencer
             in
-            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = Nothing } }, updateSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
+            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = Nothing } }, updateKickSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
 
         ToggleEdit ->
             let
@@ -492,7 +625,7 @@ update msg model =
                 kickSequencer =
                     model.kickSequencer
             in
-            ( { model | kickSequencer = { kickSequencer | sequencerLength = length } }, updateSequencerLength length )
+            ( { model | kickSequencer = { kickSequencer | sequencerLength = length } }, updateKickSequencerLength length )
 
         UpdateKickOffset value ->
             let
@@ -633,8 +766,11 @@ view model =
                 [ text (String.fromInt model.kickSequencer.sequencerLength)
                 ]
             ]
-        , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength
+        , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
         , offsetButtons model.kickSequencer.offset
+        , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
+
+        {- (SnareSound model.snare) -}
         ]
 
 
@@ -866,8 +1002,8 @@ editStepButton editing =
     button (onClick ToggleEdit :: styleUsed) [ text "edit steps" ]
 
 
-triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> Html Msg
-triggerStep steps n stepPlaying editingStep =
+triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> (Int -> Msg) -> Html Msg
+triggerStep steps n stepPlaying editingStep msg =
     let
         isPlaying =
             n == stepPlaying
@@ -924,11 +1060,11 @@ triggerStep steps n stepPlaying editingStep =
                 _ ->
                     [ A.style "background" "black" ]
     in
-    div (onClick (Steps n) :: basicStyle ++ style ++ triggerStyle) []
+    div (onClick (msg n) :: basicStyle ++ style ++ triggerStyle) []
 
 
-sequencerSteps : List Step -> Int -> Maybe Int -> Int -> Html Msg
-sequencerSteps steps stepNumber editingStep sequencerLength =
+sequencerSteps : List Step -> Int -> Maybe Int -> Int -> (Int -> Msg) -> Html Msg
+sequencerSteps steps stepNumber editingStep sequencerLength msg =
     let
         list =
             List.range 0 (-1 + sequencerLength)
@@ -937,7 +1073,7 @@ sequencerSteps steps stepNumber editingStep sequencerLength =
             Array.fromList steps
 
         elements =
-            List.map (\n -> triggerStep stepsArray n stepNumber editingStep) list
+            List.map (\n -> triggerStep stepsArray n stepNumber editingStep msg) list
 
         style =
             [ A.style "display" "flex"

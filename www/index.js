@@ -25,10 +25,13 @@ app.ports.updateKick.subscribe(function (params) {
   let { freq, pitch, wave, decay, punch, volume } = params;
   sound.update(freq, pitch, wave, decay, punch, volume);
 });
-app.ports.updateSequence.subscribe(function (sequence) {
-  sound.update_steps(sequence)
+app.ports.updateKickSequence.subscribe(function (sequence) {
+  sound.update_kick_steps(sequence)
 });
-app.ports.updateSequencerLength.subscribe(function (sequencerLength) {
+app.ports.updateSnareSequence.subscribe(function (sequence) {
+  sound.update_snare_steps(sequence)
+});
+app.ports.updateKickSequencerLength.subscribe(function (sequencerLength) {
   sound.update_sequencer_length(sequencerLength)
 });
 app.ports.updateOffset.subscribe(function (offset) {
