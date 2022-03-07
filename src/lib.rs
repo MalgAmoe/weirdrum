@@ -50,12 +50,15 @@ impl Audio {
         })
     }
 
-    fn get_sequencer(&mut self) -> &mut Sequencer {
-        &mut self.kick_sequencer
+    fn get_sequencer(&mut self, seq: &str) -> &mut Sequencer {
+        match seq {
+            "snare" => &mut self.snare_sequencer,
+            &_ => &mut self.kick_sequencer
+        }
     }
 
     #[wasm_bindgen]
-    pub fn update(
+    pub fn update_kick(
         &mut self,
         freq: f32,
         pitch: f32,
@@ -74,6 +77,26 @@ impl Audio {
             volume,
         };
         self.default_kick = kick;
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn update_snare(
+        &mut self,
+        freq: f32,
+        blend: f32,
+        decay: f32,
+        punch: f32,
+        volume: f32,
+    ) -> Result<(), JsValue> {
+        let snare = Snare {
+            freq,
+            blend,
+            decay,
+            punch: punch,
+            volume,
+        };
+        self.default_snare = snare;
         Ok(())
     }
 
@@ -108,23 +131,23 @@ impl Audio {
     }
 
     #[wasm_bindgen]
-    pub fn get_steps(&mut self) -> i8 {
+    pub fn get_steps(&mut self, seq_name: &str) -> i8 {
         let time = self.ctx.current_time();
-        let seq = self.get_sequencer();
+        let seq = self.get_sequencer(seq_name);
         get_sequencer_steps(seq, time)
     }
 
     #[wasm_bindgen]
-    pub fn update_sequencer_length(&mut self, length: i8) {
+    pub fn update_sequencer_length(&mut self, seq_name: &str, length: i8) {
         let tempo = self.tempo;
-        let seq = self.get_sequencer();
+        let seq = self.get_sequencer(seq_name);
         seq.steps = length;
         seq.step_delta = (60.0 / tempo as f64) * (4.0 / length as f64);
     }
 
     #[wasm_bindgen]
-    pub fn update_offset(&mut self, offset: f64) {
-        let seq = self.get_sequencer();
+    pub fn update_offset(&mut self, seq_name: &str, offset: f64) {
+        let seq = self.get_sequencer(seq_name);
         seq.offset = offset;
     }
 
@@ -187,7 +210,6 @@ impl Audio {
             steps[i] = match &elements[i] {
                 SnareValues {
                     freq,
-                    pitch,
                     blend,
                     decay,
                     punch,
@@ -197,7 +219,6 @@ impl Audio {
                     "trigger" => {
                         self.default_snare = Snare {
                             freq: *freq,
-                            pitch: *pitch,
                             blend: *blend,
                             decay: *decay,
                             punch: *punch,
@@ -207,7 +228,6 @@ impl Audio {
                     }
                     "lock_trigger" => Some(Trigger::LockTrigger(Box::new(Snare {
                         freq: *freq,
-                        pitch: *pitch,
                         blend: *blend,
                         decay: *decay,
                         punch: *punch,

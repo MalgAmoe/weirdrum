@@ -17,6 +17,9 @@ port stopSequence : () -> Cmd msg
 port updateKick : KickParams -> Cmd msg
 
 
+port updateSnare : SnareParams -> Cmd msg
+
+
 port updateKickSequence : List KickParamsOut -> Cmd msg
 
 
@@ -26,13 +29,19 @@ port updateSnareSequence : List SnareParamsOut -> Cmd msg
 port updateKickSequencerLength : Int -> Cmd msg
 
 
+port updateSnareSequencerLength : Int -> Cmd msg
+
+
 port updateOffset : Float -> Cmd msg
 
 
 port updateTempo : Float -> Cmd msg
 
 
-port receiveStepNumber : (Int -> msg) -> Sub msg
+port receiveKickStepNumber : (Int -> msg) -> Sub msg
+
+
+port receiveSnareStepNumber : (Int -> msg) -> Sub msg
 
 
 type Step
@@ -84,7 +93,6 @@ type alias KickParamsStrings =
 
 type alias SnareParams =
     { freq : Float
-    , pitch : Float
     , blend : Float
     , decay : Float
     , punch : Float
@@ -94,7 +102,6 @@ type alias SnareParams =
 
 type alias SnareParamsOut =
     { freq : Float
-    , pitch : Float
     , blend : Float
     , decay : Float
     , punch : Float
@@ -105,7 +112,6 @@ type alias SnareParamsOut =
 
 type alias SnareParamsStrings =
     { freq : String
-    , pitch : String
     , blend : String
     , decay : String
     , punch : String
@@ -157,7 +163,6 @@ initialModel _ =
             }
       , snare =
             { freq = 120
-            , pitch = 100
             , blend = 0.5
             , decay = 0.1
             , punch = 1.0
@@ -234,7 +239,6 @@ transformSnareStep snareParams step =
     case step of
         Trigger ->
             { freq = snareParams.freq
-            , pitch = snareParams.pitch
             , blend = snareParams.blend
             , decay = snareParams.decay
             , punch = snareParams.punch
@@ -246,7 +250,6 @@ transformSnareStep snareParams step =
             case sound of
                 SnareSound snare ->
                     { freq = snare.freq
-                    , pitch = snare.pitch
                     , blend = snare.blend
                     , decay = snare.decay
                     , punch = snare.punch
@@ -256,7 +259,6 @@ transformSnareStep snareParams step =
 
                 _ ->
                     { freq = 0
-                    , pitch = 0
                     , blend = 0
                     , decay = 0
                     , punch = 0
@@ -266,7 +268,6 @@ transformSnareStep snareParams step =
 
         EmptyStep ->
             { freq = 0
-            , pitch = 0
             , blend = 0
             , decay = 0
             , punch = 0
@@ -300,8 +301,8 @@ rotateSteps steps =
     newSteps
 
 
-compileSteps : List Step -> KickParams -> KickParams -> Int -> ( List Step, List KickParamsOut )
-compileSteps steps kick kickEdit stepNumber =
+compileKickSteps : List Step -> KickParams -> KickParams -> Int -> ( List Step, List KickParamsOut )
+compileKickSteps steps kick kickEdit stepNumber =
     let
         stepArray =
             Array.fromList steps
@@ -313,6 +314,21 @@ compileSteps steps kick kickEdit stepNumber =
             Array.toList <| Array.set stepNumber newStep stepArray
     in
     ( newSteps, List.map (\a -> transformKickStep kick a) newSteps )
+
+
+compileSnareSteps : List Step -> SnareParams -> SnareParams -> Int -> ( List Step, List SnareParamsOut )
+compileSnareSteps steps snare snareEdit stepNumber =
+    let
+        stepArray =
+            Array.fromList steps
+
+        newStep =
+            LockTrigger (SnareSound snareEdit)
+
+        newSteps =
+            Array.toList <| Array.set stepNumber newStep stepArray
+    in
+    ( newSteps, List.map (\a -> transformSnareStep snare a) newSteps )
 
 
 clipValues : comparable -> comparable -> comparable -> comparable
@@ -343,13 +359,17 @@ addValueToString string value =
 type Msg
     = PlaySequence
     | StopSequence
-    | StepNumber Int
+    | KickStepNumber Int
+    | SnareStepNumber Int
     | KickSteps Int
     | SnareSteps Int
     | Move StepMove
-    | ToggleEdit
+    | ToggleKickEdit
+    | ToggleSnareEdit
+    | UpdateSnareParams SnareParamsStrings
     | UpdateKickParams KickParamsStrings
     | UpdateKickSequencerLength String
+    | UpdateSnareSequencerLength String
     | UpdateKickOffset Int
     | UpdateTempo String
     | FixTempo String
@@ -422,7 +442,7 @@ update msg model =
                                     model.kickSequencer
 
                                 ( steps, compiledSteps ) =
-                                    compileSteps kickSequencer.steps model.kick newKick stepNumber
+                                    compileKickSteps kickSequencer.steps model.kick newKick stepNumber
                             in
                             ( { model | kickEdit = Just newKick, kickSequencer = { kickSequencer | steps = steps } }, updateKickSequence compiledSteps )
 
@@ -432,12 +452,83 @@ update msg model =
                 Nothing ->
                     ( { model | kick = newKick }, updateKick newKick )
 
-        StepNumber step ->
+        UpdateSnareParams params ->
+            let
+                freq =
+                    case parseString params.freq of
+                        Just value ->
+                            clipValues value 100 300
+
+                        Nothing ->
+                            model.snare.freq
+
+                blend =
+                    case parseString params.blend of
+                        Just value ->
+                            clipValues value 0 1
+
+                        Nothing ->
+                            model.snare.blend
+
+                punch =
+                    case parseString params.punch of
+                        Just value ->
+                            clipValues value 0 2
+
+                        Nothing ->
+                            model.snare.punch
+
+                decay =
+                    case parseString params.decay of
+                        Just value ->
+                            clipValues value 0.01 0.3
+
+                        Nothing ->
+                            model.snare.decay
+
+                volume =
+                    case parseString params.volume of
+                        Just value ->
+                            clipValues value 0.01 1
+
+                        Nothing ->
+                            model.snare.volume
+
+                newSnare =
+                    { blend = blend, freq = freq, punch = punch, decay = decay, volume = volume }
+            in
+            case model.snareEdit of
+                Just _ ->
+                    case model.snareSequencer.editingStep of
+                        Just stepNumber ->
+                            let
+                                snareSequencer =
+                                    model.snareSequencer
+
+                                ( steps, compiledSteps ) =
+                                    compileSnareSteps snareSequencer.steps model.snare newSnare stepNumber
+                            in
+                            ( { model | snareEdit = Just newSnare, snareSequencer = { snareSequencer | steps = steps } }, updateSnareSequence compiledSteps )
+
+                        Nothing ->
+                            ( { model | snareEdit = Just newSnare }, Cmd.none )
+
+                Nothing ->
+                    ( { model | snare = newSnare }, updateSnare newSnare )
+
+        KickStepNumber step ->
             let
                 kickSequencer =
                     model.kickSequencer
             in
             ( { model | kickSequencer = { kickSequencer | stepNumber = step } }, Cmd.none )
+
+        SnareStepNumber step ->
+            let
+                snareSequencer =
+                    model.snareSequencer
+            in
+            ( { model | snareSequencer = { snareSequencer | stepNumber = step } }, Cmd.none )
 
         KickSteps value ->
             let
@@ -591,7 +682,7 @@ update msg model =
             in
             ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = Nothing } }, updateKickSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
 
-        ToggleEdit ->
+        ToggleKickEdit ->
             let
                 editing =
                     not model.kickSequencer.editing
@@ -607,6 +698,23 @@ update msg model =
                     model.kickSequencer
             in
             ( { model | kickSequencer = { kickSequencer | editing = editing, editingStep = Nothing }, kickEdit = kickEdit }, Cmd.none )
+
+        ToggleSnareEdit ->
+            let
+                editing =
+                    not model.snareSequencer.editing
+
+                snareEdit =
+                    if editing then
+                        Just model.snare
+
+                    else
+                        Nothing
+
+                snareSequencer =
+                    model.snareSequencer
+            in
+            ( { model | snareSequencer = { snareSequencer | editing = editing, editingStep = Nothing }, snareEdit = snareEdit }, Cmd.none )
 
         UpdateKickSequencerLength lengthStr ->
             let
@@ -627,13 +735,32 @@ update msg model =
             in
             ( { model | kickSequencer = { kickSequencer | sequencerLength = length } }, updateKickSequencerLength length )
 
+        UpdateSnareSequencerLength lengthStr ->
+            let
+                length =
+                    case
+                        lengthStr
+                            |> Parser.run Parser.int
+                            |> Result.toMaybe
+                    of
+                        Just value ->
+                            clipValues value 2 16
+
+                        Nothing ->
+                            16
+
+                snareSequencer =
+                    model.snareSequencer
+            in
+            ( { model | snareSequencer = { snareSequencer | sequencerLength = length } }, updateSnareSequencerLength length )
+
         UpdateKickOffset value ->
             let
                 offset =
                     clipValues
                         (model.kickSequencer.offset + value)
-                        -5
-                        5
+                        0
+                        10
 
                 offsetFloat =
                     toFloat offset * 0.01
@@ -701,13 +828,21 @@ update msg model =
 view : Model -> Html Msg
 view model =
     let
-        controls =
+        controlsKick =
             case model.kickEdit of
                 Just kickEdit ->
                     kickEdit
 
                 Nothing ->
                     model.kick
+
+        controlsSnare =
+            case model.snareEdit of
+                Just snareEdit ->
+                    snareEdit
+
+                Nothing ->
+                    model.snare
     in
     div
         [ A.style "width" "100%"
@@ -728,10 +863,10 @@ view model =
             [ playingButton model.playing
             , tempoControl model.tempo
             ]
-        , kickControls controls
+        , kickControls controlsKick
         , sequencerControls
             [ moveStepsButtons
-            , editStepButton model.kickSequencer.editing
+            , editStepButton model.kickSequencer.editing ToggleKickEdit
             , input
                 [ A.style "width" "150px"
                 , A.style "background-color" "purple"
@@ -768,9 +903,45 @@ view model =
             ]
         , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
         , offsetButtons model.kickSequencer.offset
-        , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
+        , snareControls controlsSnare
+        , sequencerControls
+            [ moveStepsButtons
+            , editStepButton model.snareSequencer.editing ToggleSnareEdit
+            , input
+                [ A.style "width" "150px"
+                , A.style "background-color" "purple"
+                , disabled model.playing
+                , A.style "opacity"
+                    (if model.playing then
+                        "0.5"
 
-        {- (SnareSound model.snare) -}
+                     else
+                        "1"
+                    )
+                , A.style "margin" "none"
+                , A.style "margin-left" "5px"
+                , A.type_ "range"
+                , A.min "2"
+                , A.max "16"
+                , A.step "1"
+                , A.value (String.fromInt model.snareSequencer.sequencerLength)
+                , onInput UpdateSnareSequencerLength
+                ]
+                []
+            , div
+                [ A.style "text-align" "center"
+                , A.style "margin-left" "5px"
+                , A.style "padding" "4px 12px"
+                , A.style "border-radius" "28px"
+                , A.style "border" "2px solid purple"
+                , A.style "font-size" "0.8em"
+                , A.style "text-align" "center"
+                , A.style "width" "30px"
+                ]
+                [ text (String.fromInt model.snareSequencer.sequencerLength)
+                ]
+            ]
+        , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
         ]
 
 
@@ -832,6 +1003,29 @@ kickControls kickParams =
         , sliderWithValue "punch" kickParams.punch "0" "2" "0.001" (\a -> UpdateKickParams { s | punch = a })
         , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateKickParams { s | decay = a })
         , sliderWithValue "volume" kickParams.volume "0.01" "1" "0.001" (\a -> UpdateKickParams { s | volume = a })
+        ]
+
+
+snareControls : SnareParams -> Html Msg
+snareControls snareParams =
+    let
+        s =
+            { freq = String.fromFloat snareParams.freq
+            , blend = String.fromFloat snareParams.blend
+            , decay = String.fromFloat snareParams.decay
+            , punch = String.fromFloat snareParams.punch
+            , volume = String.fromFloat snareParams.volume
+            }
+    in
+    div
+        [ A.style "display" "flex"
+        , A.style "flex-direction" "column"
+        ]
+        [ sliderWithValue "freq" snareParams.freq "100" "300" "0.1" (\a -> UpdateSnareParams { s | freq = a })
+        , sliderWithValue "blend" snareParams.blend "0" "1" "0.001" (\a -> UpdateSnareParams { s | blend = a })
+        , sliderWithValue "punch" snareParams.punch "0" "2" "0.001" (\a -> UpdateSnareParams { s | punch = a })
+        , sliderWithValue "decay" snareParams.decay "0.01" "0.3" "0.001" (\a -> UpdateSnareParams { s | decay = a })
+        , sliderWithValue "volume" snareParams.volume "0.01" "1" "0.001" (\a -> UpdateSnareParams { s | volume = a })
         ]
 
 
@@ -970,8 +1164,8 @@ offsetButtons offset =
         ]
 
 
-editStepButton : Bool -> Html Msg
-editStepButton editing =
+editStepButton : Bool -> Msg -> Html Msg
+editStepButton editing msg =
     let
         active =
             [ A.style "background" "yellow"
@@ -999,7 +1193,7 @@ editStepButton editing =
             else
                 basic ++ unactive
     in
-    button (onClick ToggleEdit :: styleUsed) [ text "edit steps" ]
+    button (onClick msg :: styleUsed) [ text "edit steps" ]
 
 
 triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> (Int -> Msg) -> Html Msg
@@ -1087,7 +1281,10 @@ sequencerSteps steps stepNumber editingStep sequencerLength msg =
 
 subscriptions : a -> Sub Msg
 subscriptions _ =
-    receiveStepNumber StepNumber
+    Sub.batch
+        [ receiveKickStepNumber KickStepNumber
+        , receiveSnareStepNumber SnareStepNumber
+        ]
 
 
 main : Program () Model Msg

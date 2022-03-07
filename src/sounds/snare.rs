@@ -5,7 +5,6 @@ use web_sys::AudioContext;
 
 pub struct Snare {
   pub freq: f32,
-  pub pitch: f32,
   pub blend: f32,
   pub decay: f32,
   pub punch: f32,
@@ -15,7 +14,6 @@ pub struct Snare {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SnareValues {
     pub freq: f32,
-    pub pitch: f32,
     pub blend: f32,
     pub decay: f32,
     pub punch: f32,
@@ -27,7 +25,6 @@ impl Default for Snare {
   fn default() -> Snare {
     Snare {
       freq: 120.0,
-      pitch: 20.0,
       blend: 0.5,
       decay: 0.1,
       punch: 0.5,
@@ -75,10 +72,7 @@ impl super::Sound for Snare {
 
     osc
       .frequency()
-      .set_value_at_time(self.freq + self.freq * self.pitch, time)?;
-    osc
-      .frequency()
-      .exponential_ramp_to_value_at_time(self.freq, time + 0.02)?;
+      .exponential_ramp_to_value_at_time(self.freq, time)?;
     gain.gain().set_value(0.0);
     gain
       .gain()
