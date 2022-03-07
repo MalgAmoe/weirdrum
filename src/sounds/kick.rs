@@ -11,6 +11,17 @@ pub struct Kick {
   pub volume: f32,
 }
 
+#[derive(Serialize, Deserialize, Debug)]
+pub struct KickValues {
+    pub freq: f32,
+    pub pitch: f32,
+    pub wave: String,
+    pub decay: f32,
+    pub punch: f32,
+    pub volume: f32,
+    pub step_type: String,
+}
+
 impl Default for Kick {
   fn default() -> Kick {
       Kick {
@@ -52,15 +63,4 @@ impl super::Sound for Kick {
       osc.stop_with_when(time + 4.0)?;
       Ok(())
   }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-pub struct KickValues {
-    pub freq: f32,
-    pub pitch: f32,
-    pub wave: String,
-    pub decay: f32,
-    pub punch: f32,
-    pub volume: f32,
-    pub step_type: String,
 }

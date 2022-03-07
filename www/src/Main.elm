@@ -33,6 +33,8 @@ port updateSnareSequencerLength : Int -> Cmd msg
 
 
 port updateKickOffset : Float -> Cmd msg
+
+
 port updateSnareOffset : Float -> Cmd msg
 
 
@@ -908,98 +910,122 @@ view model =
             [ playingButton model.playing
             , tempoControl model.tempo
             ]
-        , kickControls controlsKick
-        , lineSpace
-        , sequencerControls
-            [ moveStepsButtons MoveKick
-            , offsetButtons UpdateKickOffset model.kickSequencer.offset
-            , editStepButton model.kickSequencer.editing ToggleKickEdit
-            , div
-                [ A.style "display" "flex"
-                , A.style "align-items" "center"
+        , soundWrapper
+            [ div
+                [ A.style "text-align" "right"
+                , A.style "color" "purple"
                 ]
-                [ input
-                    [ A.style "width" "150px"
-                    , A.style "background-color" "purple"
-                    , disabled model.playing
-                    , A.style "opacity"
-                        (if model.playing then
-                            "0.5"
-
-                         else
-                            "1"
-                        )
-                    , A.style "margin" "none"
-                    , A.style "margin-left" "5px"
-                    , A.type_ "range"
-                    , A.min "2"
-                    , A.max "16"
-                    , A.step "1"
-                    , A.value (String.fromInt model.kickSequencer.sequencerLength)
-                    , onInput UpdateKickSequencerLength
-                    ]
-                    []
+                [ text "kick" ]
+            , kickControls controlsKick
+            , lineSpace
+            , sequencerControls
+                [ moveStepsButtons MoveKick
+                , offsetButtons UpdateKickOffset model.kickSequencer.offset
+                , editStepButton model.kickSequencer.editing ToggleKickEdit
                 , div
-                    [ A.style "text-align" "center"
-                    , A.style "margin-left" "5px"
-                    , A.style "padding" "4px 12px"
-                    , A.style "border-radius" "28px"
-                    , A.style "border" "2px solid purple"
-                    , A.style "font-size" "0.8em"
-                    , A.style "text-align" "center"
-                    , A.style "width" "30px"
+                    [ A.style "display" "flex"
+                    , A.style "align-items" "center"
                     ]
-                    [ text (String.fromInt model.kickSequencer.sequencerLength)
-                    ]
-                ]
-            ]
-        , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
-        , snareControls controlsSnare
-        , lineSpace
-        , sequencerControls
-            [ moveStepsButtons MoveSnare
-            , offsetButtons UpdateSnareOffset model.snareSequencer.offset
-            , editStepButton model.snareSequencer.editing ToggleSnareEdit
-            , div
-                [ A.style "display" "flex"
-                , A.style "align-items" "center"
-                ]
-                [ input
-                    [ A.style "width" "150px"
-                    , A.style "background-color" "purple"
-                    , disabled model.playing
-                    , A.style "opacity"
-                        (if model.playing then
-                            "0.5"
+                    [ input
+                        [ A.style "width" "150px"
+                        , A.style "background-color" "purple"
+                        , disabled model.playing
+                        , A.style "opacity"
+                            (if model.playing then
+                                "0.5"
 
-                         else
-                            "1"
-                        )
-                    , A.style "margin" "none"
-                    , A.style "margin-left" "5px"
-                    , A.type_ "range"
-                    , A.min "2"
-                    , A.max "16"
-                    , A.step "1"
-                    , A.value (String.fromInt model.snareSequencer.sequencerLength)
-                    , onInput UpdateSnareSequencerLength
-                    ]
-                    []
-                , div
-                    [ A.style "text-align" "center"
-                    , A.style "margin-left" "5px"
-                    , A.style "padding" "4px 12px"
-                    , A.style "border-radius" "28px"
-                    , A.style "border" "2px solid purple"
-                    , A.style "font-size" "0.8em"
-                    , A.style "text-align" "center"
-                    , A.style "width" "30px"
-                    ]
-                    [ text (String.fromInt model.snareSequencer.sequencerLength)
+                             else
+                                "1"
+                            )
+                        , A.style "margin" "none"
+                        , A.style "margin-left" "5px"
+                        , A.type_ "range"
+                        , A.min "2"
+                        , A.max "16"
+                        , A.step "1"
+                        , A.value (String.fromInt model.kickSequencer.sequencerLength)
+                        , onInput UpdateKickSequencerLength
+                        ]
+                        []
+                    , div
+                        [ A.style "text-align" "center"
+                        , A.style "margin-left" "5px"
+                        , A.style "padding" "4px 12px"
+                        , A.style "border-radius" "28px"
+                        , A.style "border" "2px solid purple"
+                        , A.style "font-size" "0.8em"
+                        , A.style "text-align" "center"
+                        , A.style "width" "30px"
+                        ]
+                        [ text (String.fromInt model.kickSequencer.sequencerLength)
+                        ]
                     ]
                 ]
+            , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
             ]
-        , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
+        , soundWrapper
+            [ div
+                [ A.style "text-align" "right"
+                , A.style "color" "purple"
+                ]
+                [ text "snare" ]
+            , snareControls controlsSnare
+            , lineSpace
+            , sequencerControls
+                [ moveStepsButtons MoveSnare
+                , offsetButtons UpdateSnareOffset model.snareSequencer.offset
+                , editStepButton model.snareSequencer.editing ToggleSnareEdit
+                , div
+                    [ A.style "display" "flex"
+                    , A.style "align-items" "center"
+                    ]
+                    [ input
+                        [ A.style "width" "150px"
+                        , A.style "background-color" "purple"
+                        , disabled model.playing
+                        , A.style "opacity"
+                            (if model.playing then
+                                "0.5"
+
+                             else
+                                "1"
+                            )
+                        , A.style "margin" "none"
+                        , A.style "margin-left" "5px"
+                        , A.type_ "range"
+                        , A.min "2"
+                        , A.max "16"
+                        , A.step "1"
+                        , A.value (String.fromInt model.snareSequencer.sequencerLength)
+                        , onInput UpdateSnareSequencerLength
+                        ]
+                        []
+                    , div
+                        [ A.style "text-align" "center"
+                        , A.style "margin-left" "5px"
+                        , A.style "padding" "4px 12px"
+                        , A.style "border-radius" "28px"
+                        , A.style "border" "2px solid purple"
+                        , A.style "font-size" "0.8em"
+                        , A.style "text-align" "center"
+                        , A.style "width" "30px"
+                        ]
+                        [ text (String.fromInt model.snareSequencer.sequencerLength)
+                        ]
+                    ]
+                ]
+            , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
+            ]
+        ]
+
+
+soundWrapper : List (Html msg) -> Html msg
+soundWrapper =
+    div
+        [ A.style "border" "2px solid purple"
+        , A.style "border-radius" "5px"
+        , A.style "padding" "5px"
+        , A.style "margin" "5px"
         ]
 
 
@@ -1064,6 +1090,7 @@ kickControls kickParams =
         ]
 
 
+lineSpace : Html msg
 lineSpace =
     div
         [ A.style "display" "flex"
@@ -1205,7 +1232,7 @@ moveStepsButtons msg =
         ]
 
 
-offsetButtons : (Int -> Msg) ->Int -> Html Msg
+offsetButtons : (Int -> Msg) -> Int -> Html Msg
 offsetButtons msg offset =
     let
         buttonStyles =
