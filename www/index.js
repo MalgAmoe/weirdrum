@@ -41,8 +41,11 @@ app.ports.updateKickSequencerLength.subscribe(function (sequencerLength) {
 app.ports.updateSnareSequencerLength.subscribe(function (sequencerLength) {
   sound.update_sequencer_length("snare", sequencerLength)
 });
-app.ports.updateOffset.subscribe(function (offset) {
+app.ports.updateKickOffset.subscribe(function (offset) {
   sound.update_offset("kick", offset)
+});
+app.ports.updateSnareOffset.subscribe(function (offset) {
+  sound.update_offset("snare", offset)
 });
 app.ports.updateTempo.subscribe(function (tempo) {
   sound.update_tempo(tempo)
