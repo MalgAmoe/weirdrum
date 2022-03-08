@@ -8,6 +8,10 @@ import Html.Events exposing (onBlur, onClick, onInput)
 import Parser exposing (..)
 
 
+
+-- PORTS
+
+
 port playSequence : () -> Cmd msg
 
 
@@ -45,6 +49,10 @@ port receiveKickStepNumber : (Int -> msg) -> Sub msg
 
 
 port receiveSnareStepNumber : (Int -> msg) -> Sub msg
+
+
+
+-- TYPES
 
 
 type Step
@@ -132,6 +140,10 @@ type alias Sequencer =
     }
 
 
+
+-- MODEL
+
+
 type alias Model =
     { playing : Bool
     , kick : KickParams
@@ -184,6 +196,10 @@ initialModel _ =
       }
     , Cmd.none
     )
+
+
+
+-- HELPERS
 
 
 emptySequencer : List Step
@@ -359,6 +375,10 @@ addValueToString string value =
             string
 
 
+
+-- MSGS
+
+
 type Msg
     = PlaySequence
     | StopSequence
@@ -378,6 +398,10 @@ type Msg
     | UpdateSnareOffset Int
     | UpdateTempo String
     | FixTempo String
+
+
+
+-- UPDATE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -872,6 +896,10 @@ update msg model =
                 ( model, Cmd.none )
 
 
+
+-- VIEWS
+
+
 view : Model -> Html Msg
 view model =
     let
@@ -922,44 +950,7 @@ view model =
                 [ moveStepsButtons MoveKick
                 , offsetButtons UpdateKickOffset model.kickSequencer.offset
                 , editStepButton model.kickSequencer.editing ToggleKickEdit
-                , div
-                    [ A.style "display" "flex"
-                    , A.style "align-items" "center"
-                    ]
-                    [ input
-                        [ A.style "width" "150px"
-                        , A.style "background-color" "purple"
-                        , disabled model.playing
-                        , A.style "opacity"
-                            (if model.playing then
-                                "0.5"
-
-                             else
-                                "1"
-                            )
-                        , A.style "margin" "none"
-                        , A.style "margin-left" "5px"
-                        , A.type_ "range"
-                        , A.min "2"
-                        , A.max "16"
-                        , A.step "1"
-                        , A.value (String.fromInt model.kickSequencer.sequencerLength)
-                        , onInput UpdateKickSequencerLength
-                        ]
-                        []
-                    , div
-                        [ A.style "text-align" "center"
-                        , A.style "margin-left" "5px"
-                        , A.style "padding" "4px 12px"
-                        , A.style "border-radius" "28px"
-                        , A.style "border" "2px solid purple"
-                        , A.style "font-size" "0.8em"
-                        , A.style "text-align" "center"
-                        , A.style "width" "30px"
-                        ]
-                        [ text (String.fromInt model.kickSequencer.sequencerLength)
-                        ]
-                    ]
+                , sequencerLengthControl model.kickSequencer.sequencerLength model.playing UpdateKickSequencerLength
                 ]
             , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
             ]
@@ -975,48 +966,15 @@ view model =
                 [ moveStepsButtons MoveSnare
                 , offsetButtons UpdateSnareOffset model.snareSequencer.offset
                 , editStepButton model.snareSequencer.editing ToggleSnareEdit
-                , div
-                    [ A.style "display" "flex"
-                    , A.style "align-items" "center"
-                    ]
-                    [ input
-                        [ A.style "width" "150px"
-                        , A.style "background-color" "purple"
-                        , disabled model.playing
-                        , A.style "opacity"
-                            (if model.playing then
-                                "0.5"
-
-                             else
-                                "1"
-                            )
-                        , A.style "margin" "none"
-                        , A.style "margin-left" "5px"
-                        , A.type_ "range"
-                        , A.min "2"
-                        , A.max "16"
-                        , A.step "1"
-                        , A.value (String.fromInt model.snareSequencer.sequencerLength)
-                        , onInput UpdateSnareSequencerLength
-                        ]
-                        []
-                    , div
-                        [ A.style "text-align" "center"
-                        , A.style "margin-left" "5px"
-                        , A.style "padding" "4px 12px"
-                        , A.style "border-radius" "28px"
-                        , A.style "border" "2px solid purple"
-                        , A.style "font-size" "0.8em"
-                        , A.style "text-align" "center"
-                        , A.style "width" "30px"
-                        ]
-                        [ text (String.fromInt model.snareSequencer.sequencerLength)
-                        ]
-                    ]
+                , sequencerLengthControl model.snareSequencer.sequencerLength model.playing UpdateSnareSequencerLength
                 ]
             , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
             ]
         ]
+
+
+
+-- SUB VIEWS
 
 
 soundWrapper : List (Html msg) -> Html msg
@@ -1288,6 +1246,48 @@ editStepButton editing msg =
     button (onClick msg :: styleUsed) [ text "edit steps" ]
 
 
+sequencerLengthControl : Int -> Bool -> (String -> Msg) -> Html Msg
+sequencerLengthControl length playing msg =
+    div
+        [ A.style "display" "flex"
+        , A.style "align-items" "center"
+        ]
+        [ input
+            [ A.style "width" "150px"
+            , A.style "background-color" "purple"
+            , disabled playing
+            , A.style "opacity"
+                (if playing then
+                    "0.5"
+
+                 else
+                    "1"
+                )
+            , A.style "margin" "none"
+            , A.style "margin-left" "5px"
+            , A.type_ "range"
+            , A.min "2"
+            , A.max "16"
+            , A.step "1"
+            , A.value (String.fromInt length)
+            , onInput msg
+            ]
+            []
+        , div
+            [ A.style "text-align" "center"
+            , A.style "margin-left" "5px"
+            , A.style "padding" "4px 12px"
+            , A.style "border-radius" "28px"
+            , A.style "border" "2px solid purple"
+            , A.style "font-size" "0.8em"
+            , A.style "text-align" "center"
+            , A.style "width" "30px"
+            ]
+            [ text (String.fromInt length)
+            ]
+        ]
+
+
 triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> (Int -> Msg) -> Html Msg
 triggerStep steps n stepPlaying editingStep msg =
     let
@@ -1379,6 +1379,10 @@ subscriptions _ =
         ]
 
 
+
+-- MAIN
+
+
 main : Program () Model Msg
 main =
     Browser.element
@@ -1390,7 +1394,7 @@ main =
 
 
 
--- parser
+-- PARSER
 
 
 parseString : String -> Maybe Float
