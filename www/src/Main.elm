@@ -940,26 +940,10 @@ view model =
             ]
         , soundWrapper
             [ div
-                [ A.style "text-align" "right"
+                [ A.style "text-align" "center"
                 , A.style "color" "purple"
                 ]
-                [ text "kick" ]
-            , kickControls controlsKick
-            , lineSpace
-            , sequencerControls
-                [ moveStepsButtons MoveKick
-                , offsetButtons UpdateKickOffset model.kickSequencer.offset
-                , editStepButton model.kickSequencer.editing ToggleKickEdit
-                , sequencerLengthControl model.kickSequencer.sequencerLength model.playing UpdateKickSequencerLength
-                ]
-            , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
-            ]
-        , soundWrapper
-            [ div
-                [ A.style "text-align" "right"
-                , A.style "color" "purple"
-                ]
-                [ text "snare" ]
+                [ text "tac" ]
             , snareControls controlsSnare
             , lineSpace
             , sequencerControls
@@ -969,6 +953,22 @@ view model =
                 , sequencerLengthControl model.snareSequencer.sequencerLength model.playing UpdateSnareSequencerLength
                 ]
             , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
+            ]
+        , soundWrapper
+            [ div
+                [ A.style "text-align" "center"
+                , A.style "color" "purple"
+                ]
+                [ text "tung" ]
+            , kickControls controlsKick
+            , lineSpace
+            , sequencerControls
+                [ moveStepsButtons MoveKick
+                , offsetButtons UpdateKickOffset model.kickSequencer.offset
+                , editStepButton model.kickSequencer.editing ToggleKickEdit
+                , sequencerLengthControl model.kickSequencer.sequencerLength model.playing UpdateKickSequencerLength
+                ]
+            , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
             ]
         ]
 
