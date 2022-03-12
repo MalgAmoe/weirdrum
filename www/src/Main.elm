@@ -181,12 +181,19 @@ type alias Sequencer =
     }
 
 
+type DrumSelected
+    = KickSelected
+    | SnareSelected
+    | HatSelected
+
+
 
 -- MODEL
 
 
 type alias Model =
     { playing : Bool
+    , drumSelected : DrumSelected
     , kick : KickParams
     , kickEdit : Maybe KickParams
     , kickSequencer : Sequencer
@@ -203,6 +210,7 @@ type alias Model =
 initialModel : () -> ( Model, Cmd Msg )
 initialModel _ =
     ( { playing = False
+      , drumSelected = KickSelected
       , kick =
             { freq = 40
             , pitch = 10
@@ -517,6 +525,7 @@ type Msg
     | UpdateHatOffset Int
     | UpdateTempo String
     | FixTempo String
+    | SelectDrum DrumSelected
 
 
 
@@ -535,6 +544,9 @@ update msg model =
             ( { model | playing = False }
             , stopSequence ()
             )
+
+        SelectDrum drum ->
+            ( { model | drumSelected = drum }, Cmd.none )
 
         UpdateKickParams params ->
             let
@@ -1269,21 +1281,64 @@ view model =
             [ playingButton model.playing
             , tempoControl model.tempo
             ]
+        , div
+            [ A.style "display" "flex"
+            , A.style "justify-content" "flex-end"
+            , A.style "align-items" "center"
+            , A.style "margin-bottom" "5px"
+            ]
+            [ drumSelection (model.drumSelected == KickSelected) "tung" (SelectDrum KickSelected)
+            , drumSelection (model.drumSelected == SnareSelected) "tac" (SelectDrum SnareSelected)
+            , drumSelection (model.drumSelected == HatSelected) "tsss" (SelectDrum HatSelected)
+            ]
+        , if model.drumSelected == HatSelected then
+            soundWrapper
+                [ hatControls controlsHat
+                , lineSpace
+                , sequencerControls
+                    [ moveStepsButtons MoveHat
+                    , offsetButtons UpdateSnareOffset model.hatSequencer.offset
+                    , editStepButton model.hatSequencer.editing ToggleHatEdit
+                    , sequencerLengthControl model.hatSequencer.sequencerLength model.playing UpdateHatSequencerLength
+                    ]
+                ]
+
+          else
+            div [] []
+        , if model.drumSelected == SnareSelected then
+            soundWrapper
+                [ snareControls controlsSnare
+                , lineSpace
+                , sequencerControls
+                    [ moveStepsButtons MoveSnare
+                    , offsetButtons UpdateSnareOffset model.snareSequencer.offset
+                    , editStepButton model.snareSequencer.editing ToggleSnareEdit
+                    , sequencerLengthControl model.snareSequencer.sequencerLength model.playing UpdateSnareSequencerLength
+                    ]
+                ]
+
+          else
+            div [] []
+        , if model.drumSelected == KickSelected then
+            soundWrapper
+                [ kickControls controlsKick
+                , lineSpace
+                , sequencerControls
+                    [ moveStepsButtons MoveKick
+                    , offsetButtons UpdateKickOffset model.kickSequencer.offset
+                    , editStepButton model.kickSequencer.editing ToggleKickEdit
+                    , sequencerLengthControl model.kickSequencer.sequencerLength model.playing UpdateKickSequencerLength
+                    ]
+                ]
+
+          else
+            div [] []
         , soundWrapper
             [ div
                 [ A.style "text-align" "center"
                 , A.style "color" "purple"
                 ]
                 [ text "tsss" ]
-
-            , hatControls controlsHat
-            , lineSpace
-            , sequencerControls
-                [ moveStepsButtons MoveHat
-                , offsetButtons UpdateSnareOffset model.hatSequencer.offset
-                , editStepButton model.hatSequencer.editing ToggleHatEdit
-                , sequencerLengthControl model.hatSequencer.sequencerLength model.playing UpdateHatSequencerLength
-                ]
             , sequencerSteps model.hatSequencer.steps model.hatSequencer.stepNumber model.hatSequencer.editingStep model.hatSequencer.sequencerLength HatSteps
             ]
         , soundWrapper
@@ -1292,14 +1347,6 @@ view model =
                 , A.style "color" "purple"
                 ]
                 [ text "tac" ]
-            , snareControls controlsSnare
-            , lineSpace
-            , sequencerControls
-                [ moveStepsButtons MoveSnare
-                , offsetButtons UpdateSnareOffset model.snareSequencer.offset
-                , editStepButton model.snareSequencer.editing ToggleSnareEdit
-                , sequencerLengthControl model.snareSequencer.sequencerLength model.playing UpdateSnareSequencerLength
-                ]
             , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
             ]
         , soundWrapper
@@ -1308,14 +1355,6 @@ view model =
                 , A.style "color" "purple"
                 ]
                 [ text "tung" ]
-            , kickControls controlsKick
-            , lineSpace
-            , sequencerControls
-                [ moveStepsButtons MoveKick
-                , offsetButtons UpdateKickOffset model.kickSequencer.offset
-                , editStepButton model.kickSequencer.editing ToggleKickEdit
-                , sequencerLengthControl model.kickSequencer.sequencerLength model.playing UpdateKickSequencerLength
-                ]
             , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
             ]
         ]
@@ -1426,6 +1465,7 @@ snareControls snareParams =
         , sliderWithValue "decay" snareParams.decay "0.01" "0.3" "0.001" (\a -> UpdateSnareParams { s | decay = a })
         , sliderWithValue "volume" snareParams.volume "0.01" "1" "0.001" (\a -> UpdateSnareParams { s | volume = a })
         ]
+
 
 hatControls : HatParams -> Html Msg
 hatControls hatParams =
@@ -1538,6 +1578,42 @@ playingButton isPlaying =
         button
             (onClick PlaySequence :: buttonStyles)
             [ text "Play" ]
+
+
+drumSelection : Bool -> String -> Msg -> Html Msg
+drumSelection isPlaying title msg =
+    let
+        active =
+            [ A.style "background" "yellow"
+            , A.style "color" "purple"
+            , A.style "border" "2px solid purple"
+            ]
+
+        unactive =
+            [ A.style "background" "black"
+            , A.style "color" "yellow"
+            , A.style "border" "2px solid purple"
+            ]
+
+        basic =
+            [ A.style "padding" "4px 12px"
+            , A.style "border-radius" "28px"
+            , A.style "font-size" "0.8em"
+            , A.style "margin-left" "5px"
+            ]
+
+        style =
+            basic
+                ++ (if isPlaying then
+                        active
+
+                    else
+                        unactive
+                   )
+    in
+    button
+        (onClick msg :: style)
+        [ text title ]
 
 
 moveStepsButtons : (StepMove -> Msg) -> Html Msg
