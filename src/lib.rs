@@ -5,9 +5,9 @@ use web_sys::console;
 use web_sys::AudioContext;
 
 mod sounds;
-use sounds::kick::{Kick, KickValues};
-use sounds::snare::{Snare, SnareValues};
-use sounds::{wave_string_to_osc, Sound};
+use sounds::kick::{Kick, KickParams, KickValues};
+use sounds::snare::{Snare, SnareParams, SnareValues};
+use sounds::{wave_string_to_osc, Sound, SoundParams};
 
 mod sequencer;
 use sequencer::{get_sequencer_steps, Sequencer, Trigger};
@@ -23,9 +23,8 @@ pub struct Audio {
     ctx: AudioContext,
     schedule_interval: f32,
     kick_sequencer: Sequencer,
-    default_kick: Kick,
     snare_sequencer: Sequencer,
-    default_snare: Snare,
+    // default_snare: Snare,
     tempo: f32,
 }
 
@@ -34,18 +33,18 @@ impl Audio {
     #[wasm_bindgen(constructor)]
     pub fn new() -> Result<Audio, JsValue> {
         let ctx = web_sys::AudioContext::new()?;
-        let mut kick_sequencer = Sequencer::new(90.0);
+        let kick = Kick::new(&ctx)?;
+        let mut kick_sequencer = Sequencer::new(90.0, Box::new(kick));
         kick_sequencer.sequence = Default::default();
-        let mut snare_sequencer = Sequencer::new(90.0);
+        let snare = Snare::new();
+        let mut snare_sequencer = Sequencer::new(90.0, Box::new(snare));
         snare_sequencer.sequence = Default::default();
 
         Ok(Audio {
             ctx,
             schedule_interval: 0.04,
             kick_sequencer: kick_sequencer,
-            default_kick: Kick::default(),
             snare_sequencer: snare_sequencer,
-            default_snare: Snare::default(),
             tempo: 90.0,
         })
     }
@@ -53,7 +52,7 @@ impl Audio {
     fn get_sequencer(&mut self, seq: &str) -> &mut Sequencer {
         match seq {
             "snare" => &mut self.snare_sequencer,
-            &_ => &mut self.kick_sequencer
+            &_ => &mut self.kick_sequencer,
         }
     }
 
@@ -68,7 +67,7 @@ impl Audio {
         volume: f32,
     ) -> Result<(), JsValue> {
         let wave = wave_string_to_osc(wave_str);
-        let kick = Kick {
+        let kick = KickParams {
             freq,
             pitch,
             wave,
@@ -76,7 +75,7 @@ impl Audio {
             punch: punch,
             volume,
         };
-        self.default_kick = kick;
+        self.kick_sequencer.sound.update(SoundParams::Kick(kick));
         Ok(())
     }
 
@@ -89,14 +88,14 @@ impl Audio {
         punch: f32,
         volume: f32,
     ) -> Result<(), JsValue> {
-        let snare = Snare {
+        let snare = SnareParams {
             freq,
             blend,
             decay,
             punch: punch,
             volume,
         };
-        self.default_snare = snare;
+        self.snare_sequencer.sound.update(SoundParams::Snare(snare));
         Ok(())
     }
 
@@ -119,12 +118,12 @@ impl Audio {
     pub fn schedule(&mut self) -> Result<(), JsValue> {
         self.kick_sequencer.schedule_sounds(
             &self.ctx,
-            &self.default_kick,
+            // &self.default_kick,
             self.schedule_interval,
         )?;
         self.snare_sequencer.schedule_sounds(
             &self.ctx,
-            &self.default_snare,
+            // &self.default_snare,
             self.schedule_interval,
         )?;
         Ok(())
@@ -154,7 +153,6 @@ impl Audio {
     #[wasm_bindgen]
     pub fn update_tempo(&mut self, tempo: f32) {
         self.tempo = tempo;
-        // let seq = self.get_sequencer();
         self.kick_sequencer.step_delta =
             (60.0 / tempo as f64) * (4.0 / self.kick_sequencer.steps as f64);
         self.snare_sequencer.step_delta =
@@ -164,7 +162,7 @@ impl Audio {
     #[wasm_bindgen]
     pub fn update_kick_steps(&mut self, steps: JsValue) {
         let elements: Vec<KickValues> = steps.into_serde().unwrap();
-        let mut steps: [Option<Trigger<Box<dyn Sound>>>; 16] = Default::default();
+        let mut steps: [Option<Trigger<SoundParams>>; 16] = Default::default();
         for i in 0..16 {
             steps[i] = match &elements[i] {
                 KickValues {
@@ -177,17 +175,19 @@ impl Audio {
                     step_type,
                 } => match step_type.as_str() {
                     "trigger" => {
-                        self.default_kick = Kick {
-                            freq: *freq,
-                            pitch: *pitch,
-                            wave: wave_string_to_osc(wave),
-                            decay: *decay,
-                            punch: *punch,
-                            volume: *volume,
-                        };
+                        self.kick_sequencer
+                            .sound
+                            .update(SoundParams::Kick(KickParams {
+                                freq: *freq,
+                                pitch: *pitch,
+                                wave: wave_string_to_osc(wave),
+                                decay: *decay,
+                                punch: *punch,
+                                volume: *volume,
+                            }));
                         Some(Trigger::NormalTrigger)
                     }
-                    "lock_trigger" => Some(Trigger::LockTrigger(Box::new(Kick {
+                    "lock_trigger" => Some(Trigger::LockTrigger(SoundParams::Kick(KickParams {
                         freq: *freq,
                         pitch: *pitch,
                         wave: wave_string_to_osc(wave),
@@ -205,7 +205,7 @@ impl Audio {
     #[wasm_bindgen]
     pub fn update_snare_steps(&mut self, steps: JsValue) {
         let elements: Vec<SnareValues> = steps.into_serde().unwrap();
-        let mut steps: [Option<Trigger<Box<dyn Sound>>>; 16] = Default::default();
+        let mut steps: [Option<Trigger<SoundParams>>; 16] = Default::default();
         for i in 0..16 {
             steps[i] = match &elements[i] {
                 SnareValues {
@@ -217,16 +217,18 @@ impl Audio {
                     step_type,
                 } => match step_type.as_str() {
                     "trigger" => {
-                        self.default_snare = Snare {
-                            freq: *freq,
-                            blend: *blend,
-                            decay: *decay,
-                            punch: *punch,
-                            volume: *volume,
-                        };
+                        self.snare_sequencer
+                            .sound
+                            .update(SoundParams::Snare(SnareParams {
+                                freq: *freq,
+                                blend: *blend,
+                                decay: *decay,
+                                punch: *punch,
+                                volume: *volume,
+                            }));
                         Some(Trigger::NormalTrigger)
                     }
-                    "lock_trigger" => Some(Trigger::LockTrigger(Box::new(Snare {
+                    "lock_trigger" => Some(Trigger::LockTrigger(SoundParams::Snare(SnareParams {
                         freq: *freq,
                         blend: *blend,
                         decay: *decay,
