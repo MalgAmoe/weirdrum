@@ -3,6 +3,7 @@ use wasm_bindgen::prelude::*;
 
 pub mod kick;
 pub mod snare;
+pub mod hat;
 
 pub trait Sound {
   fn play(&self, ctx: &AudioContext, params: Option<super::SoundParams>, time_delta: f64, offset: f64) -> Result<(), JsValue>;
@@ -12,7 +13,8 @@ pub trait Sound {
 #[derive(Copy, Clone)]
 pub enum SoundParams {
   Kick(kick::KickParams),
-  Snare(snare::SnareParams)
+  Snare(snare::SnareParams),
+  Hat(hat::HatParams),
 }
 
 pub fn wave_string_to_osc(wave: &str) -> web_sys::OscillatorType {

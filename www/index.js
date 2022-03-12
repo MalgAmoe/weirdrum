@@ -29,11 +29,18 @@ app.ports.updateSnare.subscribe(function (params) {
   let { freq, blend, decay, punch, volume } = params;
   sound.update_snare(freq, blend, decay, punch, volume);
 });
+app.ports.updateHat.subscribe(function (params) {
+  let { freq, decay, punch, volume } = params;
+  sound.update_hat(freq, decay, punch, volume);
+});
 app.ports.updateKickSequence.subscribe(function (sequence) {
   sound.update_kick_steps(sequence)
 });
 app.ports.updateSnareSequence.subscribe(function (sequence) {
   sound.update_snare_steps(sequence)
+});
+app.ports.updateHatSequence.subscribe(function (sequence) {
+  sound.update_hat_steps(sequence)
 });
 app.ports.updateKickSequencerLength.subscribe(function (sequencerLength) {
   sound.update_sequencer_length("kick", sequencerLength)
@@ -41,11 +48,17 @@ app.ports.updateKickSequencerLength.subscribe(function (sequencerLength) {
 app.ports.updateSnareSequencerLength.subscribe(function (sequencerLength) {
   sound.update_sequencer_length("snare", sequencerLength)
 });
+app.ports.updateHatSequencerLength.subscribe(function (sequencerLength) {
+  sound.update_sequencer_length("hat", sequencerLength)
+});
 app.ports.updateKickOffset.subscribe(function (offset) {
   sound.update_offset("kick", offset)
 });
 app.ports.updateSnareOffset.subscribe(function (offset) {
   sound.update_offset("snare", offset)
+});
+app.ports.updateHatOffset.subscribe(function (offset) {
+  sound.update_offset("hat", offset)
 });
 app.ports.updateTempo.subscribe(function (tempo) {
   sound.update_tempo(tempo)
@@ -56,6 +69,8 @@ function getSteps() {
   app.ports.receiveKickStepNumber.send(kickStep);
   const snareStep = sound.get_steps("snare")
   app.ports.receiveSnareStepNumber.send(snareStep);
+  const hatStep = sound.get_steps("hat")
+  app.ports.receiveHatStepNumber.send(hatStep);
   window.requestAnimationFrame(getSteps)
 }
 window.requestAnimationFrame(getSteps)

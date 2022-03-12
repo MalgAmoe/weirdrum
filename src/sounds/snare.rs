@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use web_sys::AudioContext;
+use web_sys::{AudioContext, AudioBuffer};
 
 pub struct Snare {
   pub nodes: SnareNodes,
@@ -17,7 +17,9 @@ pub struct SnareParams {
   pub volume: f32,
 }
 
-pub struct SnareNodes {}
+pub struct SnareNodes {
+  noise_buffer: AudioBuffer
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SnareValues {
@@ -42,11 +44,21 @@ impl Default for SnareParams {
 }
 
 impl Snare {
-  pub fn new() -> Self {
-    Snare {
-      params: SnareParams::default(),
-      nodes: SnareNodes {},
+  pub fn new(ctx: &AudioContext) -> Result<Self, JsValue> {
+    let sr = ctx.sample_rate();
+    let noise_buffer = ctx.create_buffer(1, sr as u32, sr)?;
+    let noise_output = &mut noise_buffer.get_channel_data(0)?;
+    let mut rng = rand::thread_rng();
+    for i in 0..sr as usize {
+      noise_output[i] = 2.0 * rng.gen::<f32>() - 1.0;
     }
+    noise_buffer.copy_to_channel(noise_output, 0)?;
+    Ok(Snare {
+      params: SnareParams::default(),
+      nodes: SnareNodes {
+        noise_buffer
+      },
+    })
   }
 }
 
@@ -55,7 +67,7 @@ impl super::Sound for Snare {
     match params {
       super::SoundParams::Snare(snare_params) => self.params = snare_params,
       _ => {}
-  }
+    }
   }
   fn play(
     &self,
@@ -67,20 +79,12 @@ impl super::Sound for Snare {
     let params = match snare_params {
       Some(super::SoundParams::Snare(params)) => params,
       _ => self.params,
-  };
+    };
     let time = time_delta + offset + 0.05;
     let osc = ctx.create_oscillator()?;
 
-    let sr = ctx.sample_rate();
-    let noise_buffer = ctx.create_buffer(1, sr as u32, sr)?;
-    let noise_output = &mut noise_buffer.get_channel_data(0)?;
-    let mut rng = rand::thread_rng();
-    for i in 0..sr as usize {
-      noise_output[i] = 2.0 * rng.gen::<f32>() - 1.0;
-    }
-    noise_buffer.copy_to_channel(noise_output, 0)?;
     let white_noise = ctx.create_buffer_source()?;
-    white_noise.set_buffer(Some(&noise_buffer));
+    white_noise.set_buffer(Some(&self.nodes.noise_buffer));
     white_noise.set_loop(true);
 
     let noise_gain = ctx.create_gain()?;

@@ -24,10 +24,16 @@ port updateKick : KickParams -> Cmd msg
 port updateSnare : SnareParams -> Cmd msg
 
 
+port updateHat : HatParams -> Cmd msg
+
+
 port updateKickSequence : List KickParamsOut -> Cmd msg
 
 
 port updateSnareSequence : List SnareParamsOut -> Cmd msg
+
+
+port updateHatSequence : List HatParamsOut -> Cmd msg
 
 
 port updateKickSequencerLength : Int -> Cmd msg
@@ -36,10 +42,16 @@ port updateKickSequencerLength : Int -> Cmd msg
 port updateSnareSequencerLength : Int -> Cmd msg
 
 
+port updateHatSequencerLength : Int -> Cmd msg
+
+
 port updateKickOffset : Float -> Cmd msg
 
 
 port updateSnareOffset : Float -> Cmd msg
+
+
+port updateHatOffset : Float -> Cmd msg
 
 
 port updateTempo : Float -> Cmd msg
@@ -49,6 +61,9 @@ port receiveKickStepNumber : (Int -> msg) -> Sub msg
 
 
 port receiveSnareStepNumber : (Int -> msg) -> Sub msg
+
+
+port receiveHatStepNumber : (Int -> msg) -> Sub msg
 
 
 
@@ -64,6 +79,7 @@ type Step
 type Sound
     = KickSound KickParams
     | SnareSound SnareParams
+    | HatSound HatParams
 
 
 type StepMove
@@ -130,6 +146,31 @@ type alias SnareParamsStrings =
     }
 
 
+type alias HatParams =
+    { freq : Float
+    , decay : Float
+    , punch : Float
+    , volume : Float
+    }
+
+
+type alias HatParamsOut =
+    { freq : Float
+    , decay : Float
+    , punch : Float
+    , volume : Float
+    , step_type : String
+    }
+
+
+type alias HatParamsStrings =
+    { freq : String
+    , decay : String
+    , punch : String
+    , volume : String
+    }
+
+
 type alias Sequencer =
     { stepNumber : Int
     , steps : List Step
@@ -152,6 +193,9 @@ type alias Model =
     , snare : SnareParams
     , snareEdit : Maybe SnareParams
     , snareSequencer : Sequencer
+    , hat : HatParams
+    , hatEdit : Maybe HatParams
+    , hatSequencer : Sequencer
     , tempo : String
     }
 
@@ -185,6 +229,21 @@ initialModel _ =
             }
       , snareEdit = Nothing
       , snareSequencer =
+            { stepNumber = 0
+            , steps = emptySequencer
+            , editing = False
+            , editingStep = Nothing
+            , sequencerLength = 16
+            , offset = 0
+            }
+      , hat =
+            { freq = 3000
+            , decay = 0.1
+            , punch = 1.0
+            , volume = 0.5
+            }
+      , hatEdit = Nothing
+      , hatSequencer =
             { stepNumber = 0
             , steps = emptySequencer
             , editing = False
@@ -295,6 +354,44 @@ transformSnareStep snareParams step =
             }
 
 
+transformHatStep : HatParams -> Step -> HatParamsOut
+transformHatStep hatParams step =
+    case step of
+        Trigger ->
+            { freq = hatParams.freq
+            , decay = hatParams.decay
+            , punch = hatParams.punch
+            , volume = hatParams.volume
+            , step_type = "trigger"
+            }
+
+        LockTrigger sound ->
+            case sound of
+                HatSound hat ->
+                    { freq = hat.freq
+                    , decay = hat.decay
+                    , punch = hat.punch
+                    , volume = hat.volume
+                    , step_type = "lock_trigger"
+                    }
+
+                _ ->
+                    { freq = 0
+                    , decay = 0
+                    , punch = 0
+                    , volume = 0
+                    , step_type = "empty"
+                    }
+
+        EmptyStep ->
+            { freq = 0
+            , decay = 0
+            , punch = 0
+            , volume = 0
+            , step_type = "empty"
+            }
+
+
 rotateSteps : List Step -> List Step
 rotateSteps steps =
     let
@@ -350,6 +447,21 @@ compileSnareSteps steps snare snareEdit stepNumber =
     ( newSteps, List.map (\a -> transformSnareStep snare a) newSteps )
 
 
+compileHatSteps : List Step -> HatParams -> HatParams -> Int -> ( List Step, List HatParamsOut )
+compileHatSteps steps hat hatEdit stepNumber =
+    let
+        stepArray =
+            Array.fromList steps
+
+        newStep =
+            LockTrigger (HatSound hatEdit)
+
+        newSteps =
+            Array.toList <| Array.set stepNumber newStep stepArray
+    in
+    ( newSteps, List.map (\a -> transformHatStep hat a) newSteps )
+
+
 clipValues : comparable -> comparable -> comparable -> comparable
 clipValues value min max =
     value
@@ -384,18 +496,25 @@ type Msg
     | StopSequence
     | KickStepNumber Int
     | SnareStepNumber Int
+    | HatStepNumber Int
     | KickSteps Int
     | SnareSteps Int
+    | HatSteps Int
     | MoveKick StepMove
     | MoveSnare StepMove
+    | MoveHat StepMove
     | ToggleKickEdit
     | ToggleSnareEdit
+    | ToggleHatEdit
     | UpdateSnareParams SnareParamsStrings
     | UpdateKickParams KickParamsStrings
+    | UpdateHatParams HatParamsStrings
     | UpdateKickSequencerLength String
     | UpdateSnareSequencerLength String
+    | UpdateHatSequencerLength String
     | UpdateKickOffset Int
     | UpdateSnareOffset Int
+    | UpdateHatOffset Int
     | UpdateTempo String
     | FixTempo String
 
@@ -545,6 +664,62 @@ update msg model =
                 Nothing ->
                     ( { model | snare = newSnare }, updateSnare newSnare )
 
+        UpdateHatParams params ->
+            let
+                freq =
+                    case parseString params.freq of
+                        Just value ->
+                            clipValues value 1000 12000
+
+                        Nothing ->
+                            model.snare.freq
+
+                punch =
+                    case parseString params.punch of
+                        Just value ->
+                            clipValues value 0 2
+
+                        Nothing ->
+                            model.snare.punch
+
+                decay =
+                    case parseString params.decay of
+                        Just value ->
+                            clipValues value 0.01 0.3
+
+                        Nothing ->
+                            model.snare.decay
+
+                volume =
+                    case parseString params.volume of
+                        Just value ->
+                            clipValues value 0.01 1
+
+                        Nothing ->
+                            model.snare.volume
+
+                newHat =
+                    { freq = freq, punch = punch, decay = decay, volume = volume }
+            in
+            case model.hatEdit of
+                Just _ ->
+                    case model.hatSequencer.editingStep of
+                        Just stepNumber ->
+                            let
+                                hatSequencer =
+                                    model.hatSequencer
+
+                                ( steps, compiledSteps ) =
+                                    compileHatSteps hatSequencer.steps model.hat newHat stepNumber
+                            in
+                            ( { model | hatEdit = Just newHat, hatSequencer = { hatSequencer | steps = steps } }, updateHatSequence compiledSteps )
+
+                        Nothing ->
+                            ( { model | hatEdit = Just newHat }, Cmd.none )
+
+                Nothing ->
+                    ( { model | hat = newHat }, updateHat newHat )
+
         KickStepNumber step ->
             let
                 kickSequencer =
@@ -558,6 +733,13 @@ update msg model =
                     model.snareSequencer
             in
             ( { model | snareSequencer = { snareSequencer | stepNumber = step } }, Cmd.none )
+
+        HatStepNumber step ->
+            let
+                hatSequencer =
+                    model.hatSequencer
+            in
+            ( { model | hatSequencer = { hatSequencer | stepNumber = step } }, Cmd.none )
 
         KickSteps value ->
             let
@@ -685,6 +867,69 @@ update msg model =
             in
             ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = editingStep }, snareEdit = snareEdit }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
 
+        HatSteps value ->
+            let
+                stepArray =
+                    Array.fromList model.hatSequencer.steps
+
+                step =
+                    Array.get value stepArray
+
+                ( newStep, hatEdit, editingStep ) =
+                    case step of
+                        Just el ->
+                            if model.hatSequencer.editing then
+                                case el of
+                                    EmptyStep ->
+                                        case model.hatEdit of
+                                            Just hatEditValue ->
+                                                ( LockTrigger (HatSound hatEditValue), model.hatEdit, Just value )
+
+                                            Nothing ->
+                                                ( Trigger, Nothing, Nothing )
+
+                                    Trigger ->
+                                        ( LockTrigger (HatSound model.hat), Just model.hat, Just value )
+
+                                    LockTrigger sound ->
+                                        case sound of
+                                            HatSound hatEditValue ->
+                                                case model.hatSequencer.editingStep of
+                                                    Just stepNumber ->
+                                                        if stepNumber == value then
+                                                            ( EmptyStep, Just hatEditValue, Nothing )
+
+                                                        else
+                                                            ( LockTrigger sound, Just hatEditValue, Just value )
+
+                                                    Nothing ->
+                                                        ( LockTrigger sound, Just hatEditValue, Just value )
+
+                                            _ ->
+                                                ( Trigger, Nothing, Nothing )
+
+                            else
+                                case el of
+                                    EmptyStep ->
+                                        ( Trigger, Nothing, Nothing )
+
+                                    Trigger ->
+                                        ( EmptyStep, Nothing, Nothing )
+
+                                    LockTrigger _ ->
+                                        ( EmptyStep, Nothing, Nothing )
+
+                        _ ->
+                            ( EmptyStep, Nothing, Nothing )
+
+                newSteps =
+                    Array.toList <| Array.set value newStep stepArray
+
+                hatSequencer =
+                    model.hatSequencer
+            in
+            ( { model | hatSequencer = { hatSequencer | steps = newSteps, editingStep = editingStep }, hatEdit = hatEdit }, updateHatSequence (List.map (\a -> transformHatStep model.hat a) newSteps) )
+
         MoveKick value ->
             let
                 stepsArray =
@@ -737,6 +982,32 @@ update msg model =
             in
             ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = Nothing } }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
 
+        MoveHat value ->
+            let
+                stepsArray =
+                    Array.fromList model.hatSequencer.steps
+
+                start =
+                    Array.toList <| Array.slice 0 model.hatSequencer.sequencerLength stepsArray
+
+                end =
+                    Array.toList <| Array.slice model.hatSequencer.sequencerLength 16 stepsArray
+
+                newSteps =
+                    (case value of
+                        Left ->
+                            rotateSteps start
+
+                        Right ->
+                            List.reverse <| rotateSteps (List.reverse start)
+                    )
+                        ++ end
+
+                hatSequencer =
+                    model.hatSequencer
+            in
+            ( { model | hatSequencer = { hatSequencer | steps = newSteps, editingStep = Nothing } }, updateHatSequence (List.map (\a -> transformHatStep model.hat a) newSteps) )
+
         ToggleKickEdit ->
             let
                 editing =
@@ -770,6 +1041,23 @@ update msg model =
                     model.snareSequencer
             in
             ( { model | snareSequencer = { snareSequencer | editing = editing, editingStep = Nothing }, snareEdit = snareEdit }, Cmd.none )
+
+        ToggleHatEdit ->
+            let
+                editing =
+                    not model.hatSequencer.editing
+
+                hatEdit =
+                    if editing then
+                        Just model.hat
+
+                    else
+                        Nothing
+
+                hatSequencer =
+                    model.hatSequencer
+            in
+            ( { model | hatSequencer = { hatSequencer | editing = editing, editingStep = Nothing }, hatEdit = hatEdit }, Cmd.none )
 
         UpdateKickSequencerLength lengthStr ->
             let
@@ -809,6 +1097,25 @@ update msg model =
             in
             ( { model | snareSequencer = { snareSequencer | sequencerLength = length } }, updateSnareSequencerLength length )
 
+        UpdateHatSequencerLength lengthStr ->
+            let
+                length =
+                    case
+                        lengthStr
+                            |> Parser.run Parser.int
+                            |> Result.toMaybe
+                    of
+                        Just value ->
+                            clipValues value 2 16
+
+                        Nothing ->
+                            16
+
+                hatSequencer =
+                    model.hatSequencer
+            in
+            ( { model | hatSequencer = { hatSequencer | sequencerLength = length } }, updateHatSequencerLength length )
+
         UpdateKickOffset value ->
             let
                 offset =
@@ -840,6 +1147,22 @@ update msg model =
                     model.snareSequencer
             in
             ( { model | snareSequencer = { snareSequencer | offset = offset } }, updateSnareOffset offsetFloat )
+
+        UpdateHatOffset value ->
+            let
+                offset =
+                    clipValues
+                        (model.hatSequencer.offset + value)
+                        0
+                        10
+
+                offsetFloat =
+                    toFloat offset * 0.01
+
+                hatSequencer =
+                    model.hatSequencer
+            in
+            ( { model | hatSequencer = { hatSequencer | offset = offset } }, updateHatOffset offsetFloat )
 
         UpdateTempo tempoStr ->
             let
@@ -918,6 +1241,14 @@ view model =
 
                 Nothing ->
                     model.snare
+
+        controlsHat =
+            case model.hatEdit of
+                Just hatEdit ->
+                    hatEdit
+
+                Nothing ->
+                    model.hat
     in
     div
         [ A.style "width" "100%"
@@ -937,6 +1268,23 @@ view model =
             ]
             [ playingButton model.playing
             , tempoControl model.tempo
+            ]
+        , soundWrapper
+            [ div
+                [ A.style "text-align" "center"
+                , A.style "color" "purple"
+                ]
+                [ text "tsss" ]
+
+            , hatControls controlsHat
+            , lineSpace
+            , sequencerControls
+                [ moveStepsButtons MoveHat
+                , offsetButtons UpdateSnareOffset model.hatSequencer.offset
+                , editStepButton model.hatSequencer.editing ToggleHatEdit
+                , sequencerLengthControl model.hatSequencer.sequencerLength model.playing UpdateHatSequencerLength
+                ]
+            , sequencerSteps model.hatSequencer.steps model.hatSequencer.stepNumber model.hatSequencer.editingStep model.hatSequencer.sequencerLength HatSteps
             ]
         , soundWrapper
             [ div
@@ -1077,6 +1425,26 @@ snareControls snareParams =
         , sliderWithValue "punch" snareParams.punch "0" "2" "0.001" (\a -> UpdateSnareParams { s | punch = a })
         , sliderWithValue "decay" snareParams.decay "0.01" "0.3" "0.001" (\a -> UpdateSnareParams { s | decay = a })
         , sliderWithValue "volume" snareParams.volume "0.01" "1" "0.001" (\a -> UpdateSnareParams { s | volume = a })
+        ]
+
+hatControls : HatParams -> Html Msg
+hatControls hatParams =
+    let
+        s =
+            { freq = String.fromFloat hatParams.freq
+            , decay = String.fromFloat hatParams.decay
+            , punch = String.fromFloat hatParams.punch
+            , volume = String.fromFloat hatParams.volume
+            }
+    in
+    div
+        [ A.style "display" "flex"
+        , A.style "flex-direction" "column"
+        ]
+        [ sliderWithValue "freq" hatParams.freq "1000" "12000" "1" (\a -> UpdateHatParams { s | freq = a })
+        , sliderWithValue "punch" hatParams.punch "0" "2" "0.001" (\a -> UpdateHatParams { s | punch = a })
+        , sliderWithValue "decay" hatParams.decay "0.01" "0.3" "0.001" (\a -> UpdateHatParams { s | decay = a })
+        , sliderWithValue "volume" hatParams.volume "0.01" "1" "0.001" (\a -> UpdateHatParams { s | volume = a })
         ]
 
 
@@ -1376,6 +1744,7 @@ subscriptions _ =
     Sub.batch
         [ receiveKickStepNumber KickStepNumber
         , receiveSnareStepNumber SnareStepNumber
+        , receiveHatStepNumber HatStepNumber
         ]
 
 

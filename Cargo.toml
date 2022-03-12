@@ -48,6 +48,8 @@ features = [
   'WaveShaperNode',
   'AudioBuffer',
   'AudioBufferSourceNode',
+  'BiquadFilterNode',
+  'BiquadFilterType',
   'console'
 ]
 
