@@ -78,7 +78,7 @@ impl Audio {
             pitch,
             wave,
             decay,
-            punch: punch,
+            punch,
             volume,
         };
         self.kick_sequencer.sound.update(SoundParams::Kick(kick));
@@ -98,7 +98,7 @@ impl Audio {
             freq,
             blend,
             decay,
-            punch: punch,
+            punch,
             volume,
         };
         self.snare_sequencer.sound.update(SoundParams::Snare(snare));
@@ -116,7 +116,7 @@ impl Audio {
         let hat = HatParams {
             freq,
             decay,
-            punch: punch,
+            punch,
             volume,
         };
         self.hat_sequencer.sound.update(SoundParams::Hat(hat));

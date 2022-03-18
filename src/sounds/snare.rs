@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use web_sys::{AudioContext, AudioBuffer};
+use web_sys::{AudioBuffer, AudioContext};
 
 pub struct Snare {
   pub nodes: SnareNodes,
@@ -18,7 +18,7 @@ pub struct SnareParams {
 }
 
 pub struct SnareNodes {
-  noise_buffer: AudioBuffer
+  noise_buffer: AudioBuffer,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -55,18 +55,15 @@ impl Snare {
     noise_buffer.copy_to_channel(noise_output, 0)?;
     Ok(Snare {
       params: SnareParams::default(),
-      nodes: SnareNodes {
-        noise_buffer
-      },
+      nodes: SnareNodes { noise_buffer },
     })
   }
 }
 
 impl super::Sound for Snare {
   fn update(&mut self, params: super::SoundParams) {
-    match params {
-      super::SoundParams::Snare(snare_params) => self.params = snare_params,
-      _ => {}
+    if let super::SoundParams::Snare(snare_params) = params {
+      self.params = snare_params
     }
   }
   fn play(

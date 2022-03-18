@@ -541,7 +541,7 @@ update msg model =
                 freq =
                     case parseString params.freq of
                         Just value ->
-                            clipValues value 30 90
+                            clipValues value 30 120
 
                         Nothing ->
                             model.kick.freq
@@ -565,7 +565,7 @@ update msg model =
                 decay =
                     case parseString params.decay of
                         Just value ->
-                            clipValues value 0.01 0.3
+                            clipValues value 0.001 1
 
                         Nothing ->
                             model.kick.decay
@@ -605,7 +605,7 @@ update msg model =
                 freq =
                     case parseString params.freq of
                         Just value ->
-                            clipValues value 100 300
+                            clipValues value 100 400
 
                         Nothing ->
                             model.snare.freq
@@ -629,7 +629,7 @@ update msg model =
                 decay =
                     case parseString params.decay of
                         Just value ->
-                            clipValues value 0.01 0.3
+                            clipValues value 0.001 1
 
                         Nothing ->
                             model.snare.decay
@@ -669,7 +669,7 @@ update msg model =
                 freq =
                     case parseString params.freq of
                         Just value ->
-                            clipValues value 1000 12000
+                            clipValues value 800 12000
 
                         Nothing ->
                             model.snare.freq
@@ -685,7 +685,7 @@ update msg model =
                 decay =
                     case parseString params.decay of
                         Just value ->
-                            clipValues value 0.01 0.3
+                            clipValues value 0.001 1
 
                         Nothing ->
                             model.snare.decay
@@ -1388,10 +1388,10 @@ kickControls kickParams =
         , A.style "flex-direction" "column"
         ]
         [ waveButton (kickParams.wave == "sine") (\a -> UpdateKickParams { s | wave = a })
-        , sliderWithValue "freq" kickParams.freq "30" "90" "0.1" (\a -> UpdateKickParams { s | freq = a })
+        , sliderWithValue "freq" kickParams.freq "30" "120" "0.1" (\a -> UpdateKickParams { s | freq = a })
         , sliderWithValue "pitch" kickParams.pitch "0" "30" "0.01" (\a -> UpdateKickParams { s | pitch = a })
         , sliderWithValue "punch" kickParams.punch "0" "2" "0.001" (\a -> UpdateKickParams { s | punch = a })
-        , sliderWithValue "decay" kickParams.decay "0.01" "0.3" "0.001" (\a -> UpdateKickParams { s | decay = a })
+        , sliderWithValue "decay" kickParams.decay "0.001" "1" "0.001" (\a -> UpdateKickParams { s | decay = a })
         , sliderWithValue "volume" kickParams.volume "0.01" "1" "0.001" (\a -> UpdateKickParams { s | volume = a })
         ]
 
@@ -1420,10 +1420,10 @@ snareControls snareParams =
         [ A.style "display" "flex"
         , A.style "flex-direction" "column"
         ]
-        [ sliderWithValue "freq" snareParams.freq "100" "300" "0.1" (\a -> UpdateSnareParams { s | freq = a })
+        [ sliderWithValue "freq" snareParams.freq "100" "400" "0.1" (\a -> UpdateSnareParams { s | freq = a })
         , sliderWithValue "blend" snareParams.blend "0" "1" "0.001" (\a -> UpdateSnareParams { s | blend = a })
         , sliderWithValue "punch" snareParams.punch "0" "2" "0.001" (\a -> UpdateSnareParams { s | punch = a })
-        , sliderWithValue "decay" snareParams.decay "0.01" "0.3" "0.001" (\a -> UpdateSnareParams { s | decay = a })
+        , sliderWithValue "decay" snareParams.decay "0.001" "1" "0.001" (\a -> UpdateSnareParams { s | decay = a })
         , sliderWithValue "volume" snareParams.volume "0.01" "1" "0.001" (\a -> UpdateSnareParams { s | volume = a })
         ]
 
@@ -1441,9 +1441,9 @@ hatControls hatParams =
         [ A.style "display" "flex"
         , A.style "flex-direction" "column"
         ]
-        [ sliderWithValue "freq" hatParams.freq "1000" "12000" "1" (\a -> UpdateHatParams { s | freq = a })
+        [ sliderWithValue "freq" hatParams.freq "800" "12000" "1" (\a -> UpdateHatParams { s | freq = a })
         , sliderWithValue "punch" hatParams.punch "0" "2" "0.001" (\a -> UpdateHatParams { s | punch = a })
-        , sliderWithValue "decay" hatParams.decay "0.01" "0.3" "0.001" (\a -> UpdateHatParams { s | decay = a })
+        , sliderWithValue "decay" hatParams.decay "0.001" "1" "0.001" (\a -> UpdateHatParams { s | decay = a })
         , sliderWithValue "volume" hatParams.volume "0.01" "1" "0.001" (\a -> UpdateHatParams { s | volume = a })
         ]
 

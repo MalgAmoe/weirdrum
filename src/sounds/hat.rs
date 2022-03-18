@@ -59,9 +59,8 @@ impl Hat {
 
 impl super::Sound for Hat {
     fn update(&mut self, params: super::SoundParams) {
-        match params {
-            super::SoundParams::Hat(hat_params) => self.params = hat_params,
-            _ => {}
+        if let super::SoundParams::Hat(hat_params) = params {
+            self.params = hat_params;
         }
     }
     fn play(

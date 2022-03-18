@@ -22,14 +22,11 @@ pub enum Trigger<SoundParams> {
 pub fn get_sequencer_steps(sequencer: &mut Sequencer, time: f64) -> i8 {
     let mut step = get_step(sequencer.step_to_schedule, sequencer.steps);
     for _ in 0..16 {
-        match sequencer.trigger_times[step as usize] {
-            Some(trigger_time) => {
-                if trigger_time < time {
-                    sequencer.step_playing = step;
-                    return step;
-                }
+        if let Some(trigger_time) = sequencer.trigger_times[step as usize] {
+            if trigger_time < time {
+                sequencer.step_playing = step;
+                return step;
             }
-            _ => {}
         }
         step = get_step(sequencer.step_to_schedule, sequencer.steps);
     }
@@ -68,10 +65,16 @@ impl Sequencer {
             match &self.sequence[self.step_to_schedule as usize] {
                 Some(trigger) => match trigger {
                     Trigger::LockTrigger(locked_sound) => {
-                        self.sound.play(ctx, Some(*locked_sound) ,self.next_step_time, self.offset)?;
+                        self.sound.play(
+                            ctx,
+                            Some(*locked_sound),
+                            self.next_step_time,
+                            self.offset,
+                        )?;
                     }
                     Trigger::NormalTrigger => {
-                        self.sound.play(ctx, None, self.next_step_time, self.offset)?;
+                        self.sound
+                            .play(ctx, None, self.next_step_time, self.offset)?;
                     }
                 },
                 None => {}

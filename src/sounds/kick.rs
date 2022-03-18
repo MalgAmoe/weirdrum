@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-use web_sys::{AudioContext};
+use web_sys::AudioContext;
 
 #[derive(Copy, Clone)]
 pub struct KickParams {
@@ -54,9 +54,8 @@ impl Kick {
 
 impl super::Sound for Kick {
     fn update(&mut self, params: super::SoundParams) {
-        match params {
-            super::SoundParams::Kick(kick_params) => self.params = kick_params,
-            _ => {}
+        if let super::SoundParams::Kick(kick_params) = params {
+            self.params = kick_params
         }
     }
     fn play(
