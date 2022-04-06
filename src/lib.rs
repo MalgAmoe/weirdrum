@@ -1,7 +1,6 @@
 mod utils;
 
 use wasm_bindgen::prelude::*;
-use web_sys::console;
 use web_sys::AudioContext;
 
 mod sounds;
