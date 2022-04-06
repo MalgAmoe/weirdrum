@@ -1280,7 +1280,7 @@ view model =
             , lineSpace
             , sequencerControls
                 [ moveStepsButtons MoveHat
-                , offsetButtons UpdateSnareOffset model.hatSequencer.offset
+                , offsetButtons UpdateHatOffset model.hatSequencer.offset
                 , editStepButton model.hatSequencer.editing ToggleHatEdit
                 , sequencerLengthControl model.hatSequencer.sequencerLength model.playing UpdateHatSequencerLength
                 ]
