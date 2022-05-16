@@ -4,7 +4,8 @@ import Array
 import Browser
 import Html exposing (Html, button, div, input, span, text)
 import Html.Attributes as A exposing (disabled)
-import Html.Events exposing (onBlur, onClick, onInput)
+import Html.Events as Events exposing (onBlur, onClick, onInput, onMouseDown, onMouseEnter, onMouseLeave, onMouseUp)
+import Json.Decode as Decode
 import Parser exposing (..)
 
 
@@ -187,6 +188,7 @@ type alias Sequencer =
 
 type alias Model =
     { playing : Bool
+    , clicking : Bool
     , kick : KickParams
     , kickEdit : Maybe KickParams
     , kickSequencer : Sequencer
@@ -203,6 +205,7 @@ type alias Model =
 initialModel : () -> ( Model, Cmd Msg )
 initialModel _ =
     ( { playing = False
+      , clicking = False
       , kick =
             { freq = 40
             , pitch = 10
@@ -477,6 +480,12 @@ clipValues value min max =
            )
 
 
+onDragStart : a -> Html.Attribute a
+onDragStart msg =
+    Events.on "dragstart" <|
+        Decode.succeed msg
+
+
 addValueToString : String -> Int -> String
 addValueToString string value =
     case String.toInt string of
@@ -494,6 +503,7 @@ addValueToString string value =
 type Msg
     = PlaySequence
     | StopSequence
+    | Clicking Bool
     | KickStepNumber Int
     | SnareStepNumber Int
     | HatStepNumber Int
@@ -535,6 +545,9 @@ update msg model =
             ( { model | playing = False }
             , stopSequence ()
             )
+
+        Clicking isClicking ->
+            ( { model | clicking = isClicking }, Cmd.none )
 
         UpdateKickParams params ->
             let
@@ -802,7 +815,7 @@ update msg model =
                 kickSequencer =
                     model.kickSequencer
             in
-            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = editingStep }, kickEdit = kickEdit }, updateKickSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
+            ( { model | kickSequencer = { kickSequencer | steps = newSteps, editingStep = editingStep }, kickEdit = kickEdit, clicking = True }, updateKickSequence (List.map (\a -> transformKickStep model.kick a) newSteps) )
 
         SnareSteps value ->
             let
@@ -865,7 +878,7 @@ update msg model =
                 snareSequencer =
                     model.snareSequencer
             in
-            ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = editingStep }, snareEdit = snareEdit }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
+            ( { model | snareSequencer = { snareSequencer | steps = newSteps, editingStep = editingStep }, snareEdit = snareEdit, clicking = True }, updateSnareSequence (List.map (\a -> transformSnareStep model.snare a) newSteps) )
 
         HatSteps value ->
             let
@@ -928,7 +941,7 @@ update msg model =
                 hatSequencer =
                     model.hatSequencer
             in
-            ( { model | hatSequencer = { hatSequencer | steps = newSteps, editingStep = editingStep }, hatEdit = hatEdit }, updateHatSequence (List.map (\a -> transformHatStep model.hat a) newSteps) )
+            ( { model | hatSequencer = { hatSequencer | steps = newSteps, editingStep = editingStep }, hatEdit = hatEdit, clicking = True }, updateHatSequence (List.map (\a -> transformHatStep model.hat a) newSteps) )
 
         MoveKick value ->
             let
@@ -1259,6 +1272,8 @@ view model =
         , A.style "margin" "auto"
         , A.style "color" "yellow"
         , A.style "background-color" "black"
+        , onMouseUp (Clicking False)
+        , onMouseLeave (Clicking False)
         ]
         [ div
             [ A.style "display" "flex"
@@ -1275,7 +1290,6 @@ view model =
                 , A.style "color" "purple"
                 ]
                 [ text "tsss" ]
-
             , hatControls controlsHat
             , lineSpace
             , sequencerControls
@@ -1284,7 +1298,7 @@ view model =
                 , editStepButton model.hatSequencer.editing ToggleHatEdit
                 , sequencerLengthControl model.hatSequencer.sequencerLength model.playing UpdateHatSequencerLength
                 ]
-            , sequencerSteps model.hatSequencer.steps model.hatSequencer.stepNumber model.hatSequencer.editingStep model.hatSequencer.sequencerLength HatSteps
+            , sequencerSteps model.hatSequencer.steps model.hatSequencer.stepNumber model.hatSequencer.editingStep model.hatSequencer.sequencerLength model.clicking HatSteps
             ]
         , soundWrapper
             [ div
@@ -1300,7 +1314,7 @@ view model =
                 , editStepButton model.snareSequencer.editing ToggleSnareEdit
                 , sequencerLengthControl model.snareSequencer.sequencerLength model.playing UpdateSnareSequencerLength
                 ]
-            , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength SnareSteps
+            , sequencerSteps model.snareSequencer.steps model.snareSequencer.stepNumber model.snareSequencer.editingStep model.snareSequencer.sequencerLength model.clicking SnareSteps
             ]
         , soundWrapper
             [ div
@@ -1316,7 +1330,7 @@ view model =
                 , editStepButton model.kickSequencer.editing ToggleKickEdit
                 , sequencerLengthControl model.kickSequencer.sequencerLength model.playing UpdateKickSequencerLength
                 ]
-            , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength KickSteps
+            , sequencerSteps model.kickSequencer.steps model.kickSequencer.stepNumber model.kickSequencer.editingStep model.kickSequencer.sequencerLength model.clicking KickSteps
             ]
         ]
 
@@ -1426,6 +1440,7 @@ snareControls snareParams =
         , sliderWithValue "decay" snareParams.decay "0.001" "1" "0.001" (\a -> UpdateSnareParams { s | decay = a })
         , sliderWithValue "volume" snareParams.volume "0.01" "1" "0.001" (\a -> UpdateSnareParams { s | volume = a })
         ]
+
 
 hatControls : HatParams -> Html Msg
 hatControls hatParams =
@@ -1656,8 +1671,8 @@ sequencerLengthControl length playing msg =
         ]
 
 
-triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> (Int -> Msg) -> Html Msg
-triggerStep steps n stepPlaying editingStep msg =
+triggerStep : Array.Array Step -> Int -> Int -> Maybe Int -> Bool -> (Int -> Msg) -> Html Msg
+triggerStep steps n stepPlaying editingStep isClicking msg =
     let
         isPlaying =
             n == stepPlaying
@@ -1713,12 +1728,19 @@ triggerStep steps n stepPlaying editingStep msg =
 
                 _ ->
                     [ A.style "background" "black" ]
+
+        actions =
+            if isClicking then
+                onMouseEnter (msg n)
+
+            else
+                onMouseDown (msg n)
     in
-    div (onClick (msg n) :: basicStyle ++ style ++ triggerStyle) []
+    div ([ actions, onMouseUp (Clicking False), onDragStart (Clicking False) ] ++ basicStyle ++ style ++ triggerStyle) []
 
 
-sequencerSteps : List Step -> Int -> Maybe Int -> Int -> (Int -> Msg) -> Html Msg
-sequencerSteps steps stepNumber editingStep sequencerLength msg =
+sequencerSteps : List Step -> Int -> Maybe Int -> Int -> Bool -> (Int -> Msg) -> Html Msg
+sequencerSteps steps stepNumber editingStep sequencerLength isClicking msg =
     let
         list =
             List.range 0 (-1 + sequencerLength)
@@ -1727,7 +1749,7 @@ sequencerSteps steps stepNumber editingStep sequencerLength msg =
             Array.fromList steps
 
         elements =
-            List.map (\n -> triggerStep stepsArray n stepNumber editingStep msg) list
+            List.map (\n -> triggerStep stepsArray n stepNumber editingStep isClicking msg) list
 
         style =
             [ A.style "display" "flex"
