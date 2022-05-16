@@ -27,6 +27,7 @@ pub struct HatValues {
 
 pub struct HatNodes {
     noise_buffer: AudioBuffer,
+    volume: web_sys::GainNode,
 }
 
 impl Default for HatParams {
@@ -50,14 +51,24 @@ impl Hat {
             noise_output[i] = 2.0 * rng.gen::<f32>() - 1.0;
         }
         noise_buffer.copy_to_channel(noise_output, 0)?;
+        let volume = ctx.create_gain()?;
+        volume.gain().set_value(0.9);
+        volume.connect_with_audio_node(&ctx.destination())?;
         Ok(Hat {
             params: HatParams::default(),
-            nodes: HatNodes { noise_buffer },
+            nodes: HatNodes {
+                noise_buffer,
+                volume,
+            },
         })
     }
 }
 
 impl super::Sound for Hat {
+    fn update_volume(&mut self, ctx: &AudioContext, volume: f32) -> Result<(), JsValue> {
+        self.nodes.volume.gain().linear_ramp_to_value_at_time(volume, ctx.current_time() + 0.01)?;
+        Ok(())
+    }
     fn update(&mut self, params: super::SoundParams) {
         if let super::SoundParams::Hat(hat_params) = params {
             self.params = hat_params;
@@ -84,7 +95,6 @@ impl super::Sound for Hat {
         let filter = ctx.create_biquad_filter()?;
         filter.set_type(BiquadFilterType::Highpass);
         filter.frequency().set_value(params.freq);
-        
         compressor.threshold().set_value(-30.0 * params.punch);
         compressor.knee().set_value(1.0);
         compressor.ratio().set_value(5.0);
@@ -94,7 +104,7 @@ impl super::Sound for Hat {
         white_noise.connect_with_audio_node(&filter)?;
         filter.connect_with_audio_node(&gain)?;
         gain.connect_with_audio_node(&compressor)?;
-        compressor.connect_with_audio_node(&ctx.destination())?;
+        compressor.connect_with_audio_node(&self.nodes.volume)?;
 
         gain.gain().set_value(0.0);
         gain.gain()

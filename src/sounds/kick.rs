@@ -13,11 +13,13 @@ pub struct KickParams {
 }
 
 pub struct Kick {
-    pub nodes: KickNodes,
+    nodes: KickNodes,
     pub params: KickParams,
 }
 
-pub struct KickNodes {}
+struct KickNodes {
+    volume: web_sys::GainNode
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct KickValues {
@@ -44,15 +46,24 @@ impl Default for KickParams {
 }
 
 impl Kick {
-    pub fn new(_ctx: &AudioContext) -> Result<Self, JsValue> {
+    pub fn new(ctx: &AudioContext) -> Result<Self, JsValue> {
+        let volume = ctx.create_gain()?;
+        volume.gain().set_value(0.9);
+        volume.connect_with_audio_node(&ctx.destination())?;
         Ok(Kick {
             params: KickParams::default(),
-            nodes: KickNodes {},
+            nodes: KickNodes {
+                volume
+            },
         })
     }
 }
 
 impl super::Sound for Kick {
+    fn update_volume(&mut self, ctx: &AudioContext, volume: f32) -> Result<(), JsValue> {
+        self.nodes.volume.gain().linear_ramp_to_value_at_time(volume, ctx.current_time() + 0.01)?;
+        Ok(())
+    }
     fn update(&mut self, params: super::SoundParams) {
         if let super::SoundParams::Kick(kick_params) = params {
             self.params = kick_params
@@ -78,7 +89,7 @@ impl super::Sound for Kick {
         compressor.ratio().set_value(5.0);
         compressor.attack().set_value(0.1);
         compressor.release().set_value(0.1);
-        compressor.connect_with_audio_node(&ctx.destination())?;
+        compressor.connect_with_audio_node(&self.nodes.volume)?;
         compressor.threshold().set_value(-30.0 * params.punch);
 
         osc.connect_with_audio_node(&gain)?;

@@ -85,6 +85,18 @@ impl Audio {
     }
 
     #[wasm_bindgen]
+    pub fn update_snare_volume(&mut self, volume: f32) -> Result<(), JsValue> {
+        self.snare_sequencer.sound.update_volume(&self.ctx, volume)?;
+        Ok(())
+    }
+
+    #[wasm_bindgen]
+    pub fn update_hat_volume(&mut self, volume: f32) -> Result<(), JsValue> {
+        self.hat_sequencer.sound.update_volume(&self.ctx, volume)?;
+        Ok(())
+    }
+
+    #[wasm_bindgen]
     pub fn update_snare(
         &mut self,
         freq: f32,
@@ -277,24 +289,20 @@ impl Audio {
                     step_type,
                 } => match step_type.as_str() {
                     "trigger" => {
-                        self.hat_sequencer
-                            .sound
-                            .update(SoundParams::Hat(HatParams {
-                                freq: *freq,
-                                decay: *decay,
-                                punch: *punch,
-                                volume: *volume,
-                            }));
-                        Some(Trigger::NormalTrigger)
-                    }
-                    "lock_trigger" => {
-                        Some(Trigger::LockTrigger(SoundParams::Hat(HatParams {
+                        self.hat_sequencer.sound.update(SoundParams::Hat(HatParams {
                             freq: *freq,
                             decay: *decay,
                             punch: *punch,
                             volume: *volume,
-                        })))
+                        }));
+                        Some(Trigger::NormalTrigger)
                     }
+                    "lock_trigger" => Some(Trigger::LockTrigger(SoundParams::Hat(HatParams {
+                        freq: *freq,
+                        decay: *decay,
+                        punch: *punch,
+                        volume: *volume,
+                    }))),
                     &_ => None,
                 },
             }

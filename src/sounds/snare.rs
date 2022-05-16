@@ -4,7 +4,7 @@ use wasm_bindgen::prelude::*;
 use web_sys::{AudioBuffer, AudioContext};
 
 pub struct Snare {
-  pub nodes: SnareNodes,
+  nodes: SnareNodes,
   pub params: SnareParams,
 }
 
@@ -17,8 +17,9 @@ pub struct SnareParams {
   pub volume: f32,
 }
 
-pub struct SnareNodes {
+struct SnareNodes {
   noise_buffer: AudioBuffer,
+  volume: web_sys::GainNode,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -53,14 +54,28 @@ impl Snare {
       noise_output[i] = 2.0 * rng.gen::<f32>() - 1.0;
     }
     noise_buffer.copy_to_channel(noise_output, 0)?;
+    let volume = ctx.create_gain()?;
+    volume.gain().set_value(0.9);
+    volume.connect_with_audio_node(&ctx.destination())?;
     Ok(Snare {
       params: SnareParams::default(),
-      nodes: SnareNodes { noise_buffer },
+      nodes: SnareNodes {
+        noise_buffer,
+        volume,
+      },
     })
   }
 }
 
 impl super::Sound for Snare {
+  fn update_volume(&mut self, ctx: &AudioContext, volume: f32) -> Result<(), JsValue> {
+    self
+      .nodes
+      .volume
+      .gain()
+      .linear_ramp_to_value_at_time(volume, ctx.current_time() + 0.01)?;
+    Ok(())
+  }
   fn update(&mut self, params: super::SoundParams) {
     if let super::SoundParams::Snare(snare_params) = params {
       self.params = snare_params
@@ -102,7 +117,7 @@ impl super::Sound for Snare {
     osc_gain.connect_with_audio_node(&gain)?;
     noise_gain.connect_with_audio_node(&gain)?;
     gain.connect_with_audio_node(&compressor)?;
-    compressor.connect_with_audio_node(&ctx.destination())?;
+    compressor.connect_with_audio_node(&self.nodes.volume)?;
 
     osc
       .frequency()

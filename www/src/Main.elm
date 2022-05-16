@@ -55,6 +55,15 @@ port updateSnareOffset : Float -> Cmd msg
 port updateHatOffset : Float -> Cmd msg
 
 
+port updateKickVolume : Float -> Cmd msg
+
+
+port updateSnareVolume : Float -> Cmd msg
+
+
+port updateHatVolume : Float -> Cmd msg
+
+
 port updateTempo : Float -> Cmd msg
 
 
@@ -192,6 +201,9 @@ type alias Model =
     , kick : KickParams
     , kickEdit : Maybe KickParams
     , kickSequencer : Sequencer
+    , kickVolume : Float
+    , snareVolume : Float
+    , hatVolume : Float
     , snare : SnareParams
     , snareEdit : Maybe SnareParams
     , snareSequencer : Sequencer
@@ -223,6 +235,9 @@ initialModel _ =
             , sequencerLength = 16
             , offset = 0
             }
+      , kickVolume = 0.9
+      , snareVolume = 0.9
+      , hatVolume = 0.9
       , snare =
             { freq = 120
             , blend = 0.5
@@ -504,6 +519,9 @@ type Msg
     = PlaySequence
     | StopSequence
     | Clicking Bool
+    | ChangeKickVolume String
+    | ChangeSnareVolume String
+    | ChangeHatVolume String
     | KickStepNumber Int
     | SnareStepNumber Int
     | HatStepNumber Int
@@ -548,6 +566,42 @@ update msg model =
 
         Clicking isClicking ->
             ( { model | clicking = isClicking }, Cmd.none )
+
+        ChangeKickVolume volume ->
+            let
+                volumeFloat =
+                    case parseString volume of
+                        Just value ->
+                            clipValues value 0 1
+
+                        Nothing ->
+                            model.kickVolume
+            in
+            ( { model | kickVolume = volumeFloat }, updateKickVolume volumeFloat )
+
+        ChangeSnareVolume volume ->
+            let
+                volumeFloat =
+                    case parseString volume of
+                        Just value ->
+                            clipValues value 0 1
+
+                        Nothing ->
+                            model.kickVolume
+            in
+            ( { model | snareVolume = volumeFloat }, updateSnareVolume volumeFloat )
+
+        ChangeHatVolume volume ->
+            let
+                volumeFloat =
+                    case parseString volume of
+                        Just value ->
+                            clipValues value 0 1
+
+                        Nothing ->
+                            model.kickVolume
+            in
+            ( { model | hatVolume = volumeFloat }, updateHatVolume volumeFloat )
 
         UpdateKickParams params ->
             let
@@ -1286,8 +1340,19 @@ view model =
             ]
         , soundWrapper
             [ div
+                [ A.style "display" "flex"
+                , A.style "justify-content" "space-evenly"
+                ]
+                [ volumeSlider "tung" model.kickVolume ChangeKickVolume
+                , volumeSlider "tac" model.snareVolume ChangeSnareVolume
+                , volumeSlider "tsss" model.hatVolume ChangeHatVolume
+                ]
+            ]
+        , soundWrapper
+            [ div
                 [ A.style "text-align" "center"
-                , A.style "color" "purple"
+                , A.style "color" "yellow"
+                , A.style "font-weight" "bold"
                 ]
                 [ text "tsss" ]
             , hatControls controlsHat
@@ -1303,7 +1368,8 @@ view model =
         , soundWrapper
             [ div
                 [ A.style "text-align" "center"
-                , A.style "color" "purple"
+                , A.style "color" "yellow"
+                , A.style "font-weight" "bold"
                 ]
                 [ text "tac" ]
             , snareControls controlsSnare
@@ -1319,7 +1385,8 @@ view model =
         , soundWrapper
             [ div
                 [ A.style "text-align" "center"
-                , A.style "color" "purple"
+                , A.style "color" "yellow"
+                , A.style "font-weight" "bold"
                 ]
                 [ text "tung" ]
             , kickControls controlsKick
@@ -1460,6 +1527,27 @@ hatControls hatParams =
         , sliderWithValue "punch" hatParams.punch "0" "2" "0.001" (\a -> UpdateHatParams { s | punch = a })
         , sliderWithValue "decay" hatParams.decay "0.001" "1" "0.001" (\a -> UpdateHatParams { s | decay = a })
         , sliderWithValue "volume" hatParams.volume "0.01" "1" "0.001" (\a -> UpdateHatParams { s | volume = a })
+        ]
+
+
+volumeSlider : String -> Float -> (String -> msg) -> Html msg
+volumeSlider title value msg =
+    div
+        []
+        [ text title
+        , input
+            [ A.style "background-color" "purple"
+            , A.type_ "range"
+            , A.style "margin-top" "9px"
+            , A.class "volume"
+            , A.min "0"
+            , A.max "1"
+            , A.step "0.01"
+            , A.value (String.fromFloat value)
+            , onInput msg
+            ]
+            []
+        , text (String.fromFloat value)
         ]
 
 

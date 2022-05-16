@@ -21,6 +21,15 @@ app.ports.stopSequence.subscribe(function () {
     interval = null;
   }
 });
+app.ports.updateKickVolume.subscribe(function (volume) {
+  sound.update_kick_volume(volume)
+});
+app.ports.updateSnareVolume.subscribe(function (volume) {
+  sound.update_snare_volume(volume)
+});
+app.ports.updateHatVolume.subscribe(function (volume) {
+  sound.update_hat_volume(volume)
+});
 app.ports.updateKick.subscribe(function (params) {
   let { freq, pitch, wave, decay, punch, volume } = params;
   sound.update_kick(freq, pitch, wave, decay, punch, volume);
