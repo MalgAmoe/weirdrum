@@ -85,6 +85,12 @@ impl Audio {
     }
 
     #[wasm_bindgen]
+    pub fn update_kick_volume(&mut self, volume: f32) -> Result<(), JsValue> {
+        self.kick_sequencer.sound.update_volume(&self.ctx, volume)?;
+        Ok(())
+    }
+
+    #[wasm_bindgen]
     pub fn update_snare_volume(&mut self, volume: f32) -> Result<(), JsValue> {
         self.snare_sequencer.sound.update_volume(&self.ctx, volume)?;
         Ok(())

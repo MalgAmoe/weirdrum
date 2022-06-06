@@ -1547,7 +1547,11 @@ volumeSlider title value msg =
             , onInput msg
             ]
             []
-        , text (String.fromFloat value)
+        , div
+            [ A.style "padding" "5px"
+            , A.style "padding-left" "1px"
+            ]
+            [ text (String.fromFloat value) ]
         ]
 
 
